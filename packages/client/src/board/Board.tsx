@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BoardProps } from 'boardgame.io/react';
 import {
   RESOURCES,
@@ -36,6 +36,21 @@ export function Board({ G, moves, playerID, matchData }: Props) {
   const [guessProphecy, setGuessProphecy] = useState('');
   const [discard, setDiscard] = useState<ResourceMap>(emptySelection);
 
+  // One move at a time: the server rejects a move sent before the previous one's
+  // result arrives, so buttons stay disabled until the new state comes back.
+  const [busy, setBusy] = useState(false);
+  const busyTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    setBusy(false);
+    clearTimeout(busyTimer.current);
+  }, [G]);
+  const send = (name: string, ...args: unknown[]) => {
+    if (busy) return;
+    setBusy(true);
+    busyTimer.current = setTimeout(() => setBusy(false), 3000);
+    moves[name]!(...args);
+  };
+
   const me = G.players.find((p) => p.id === playerID);
   const active = G.players.find((p) => p.id === G.turn.activePlayerId)!;
   const opponents = G.players.filter((p) => p.id !== playerID);
@@ -43,8 +58,8 @@ export function Board({ G, moves, playerID, matchData }: Props) {
   const isConnected = (id: string) => matchData?.find((m) => String(m.id) === id)?.isConnected ?? false;
 
   const myTurn = !!me && G.turn.activePlayerId === me.id && G.turn.phase !== 'gameOver';
-  const canAct = myTurn && G.turn.phase === 'action' && !G.pendingChoice;
-  const exploring = myTurn && G.turn.phase === 'expedition' && !G.pendingChoice;
+  const canAct = myTurn && G.turn.phase === 'action' && !G.pendingChoice && !busy;
+  const exploring = myTurn && G.turn.phase === 'expedition' && !G.pendingChoice && !busy;
   const pending = G.pendingChoice;
   const winner = G.winnerId ? G.players.find((p) => p.id === G.winnerId) : null;
   const costs = G.config.costs;
@@ -100,9 +115,9 @@ export function Board({ G, moves, playerID, matchData }: Props) {
           </div>
           <button
             className="primary"
-            disabled={RESOURCES.reduce((n, r) => n + discard[r], 0) !== pending.count}
+            disabled={busy || RESOURCES.reduce((n, r) => n + discard[r], 0) !== pending.count}
             onClick={() => {
-              moves.chooseDiscard!(discard);
+              send('chooseDiscard', discard);
               setDiscard(emptySelection());
             }}
           >
@@ -125,7 +140,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                     <div className="card-title">{s.name}</div>
                     <div className="muted small">{CATEGORY_LABEL[s.category]}</div>
                     <div className="small">{costText(s.cost)}</div>
-                    <button disabled={!canAct || !affordable} onClick={() => moves.build!(slot)}>Build</button>
+                    <button disabled={!canAct || !affordable} onClick={() => send('build', slot)}>Build</button>
                   </div>
                 );
               })}
@@ -146,8 +161,8 @@ export function Board({ G, moves, playerID, matchData }: Props) {
               </p>
               {G.expedition.playerId === playerID && (
                 <div className="row">
-                  <button className="primary" disabled={!exploring || noCardsLeft} onClick={() => moves.draw!()}>Draw a card</button>
-                  <button disabled={!canStop} onClick={() => moves.stopExpedition!()}>Stop and keep</button>
+                  <button className="primary" disabled={!exploring || noCardsLeft} onClick={() => send('draw')}>Draw a card</button>
+                  <button disabled={!canStop} onClick={() => send('stopExpedition')}>Stop and keep</button>
                 </div>
               )}
             </section>
@@ -172,10 +187,10 @@ export function Board({ G, moves, playerID, matchData }: Props) {
               )}
 
               <div className="actions">
-                <button disabled={!canAct || !canAfford(me.inventory, costs.ritual)} onClick={() => moves.ritual!()}>
+                <button disabled={!canAct || !canAfford(me.inventory, costs.ritual)} onClick={() => send('ritual')}>
                   Ritual <span className="small">({costText(costs.ritual)})</span>
                 </button>
-                <button disabled={!canAct || !canAfford(me.inventory, costs.divineCoin)} onClick={() => moves.buyDivineCoin!()}>
+                <button disabled={!canAct || !canAfford(me.inventory, costs.divineCoin)} onClick={() => send('buyDivineCoin')}>
                   Buy Divine Coin <span className="small">({costText(costs.divineCoin)})</span>
                 </button>
                 <button
@@ -185,7 +200,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                 >
                   {attacking ? 'Cancel attack' : 'Attack'} <span className="small">({costText(costs.attack)})</span>
                 </button>
-                <button className="primary" disabled={!canAct} onClick={() => { setAttacking(false); moves.endActions!(); }}>
+                <button className="primary" disabled={!canAct} onClick={() => { setAttacking(false); send('endActions'); }}>
                   Set out on expedition
                 </button>
               </div>
@@ -203,7 +218,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                 </select>
                 <button
                   disabled={!canAct || !guessTarget || !guessProphecy || me.divineCoins < costs.guessProphecy}
-                  onClick={() => { moves.guessProphecy!(guessTarget, guessProphecy); setGuessTarget(''); setGuessProphecy(''); }}
+                  onClick={() => { send('guessProphecy', guessTarget, guessProphecy); setGuessTarget(''); setGuessProphecy(''); }}
                 >
                   Guess
                 </button>
@@ -240,7 +255,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
               <Village
                 player={p}
                 structure={structure}
-                onAttack={attacking && canAct && !p.eliminated ? (cardId) => { moves.attack!(p.id, cardId); setAttacking(false); } : undefined}
+                onAttack={attacking && canAct && !p.eliminated ? (cardId) => { send('attack', p.id, cardId); setAttacking(false); } : undefined}
               />
             </section>
           ))}
