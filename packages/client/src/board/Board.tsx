@@ -7,17 +7,14 @@ import {
   inventorySize,
   prophecyProgress,
   type Player,
-  type ResourceMap,
   type StructureConfig,
 } from '@phoenicians/engine';
 import { HIDDEN, type PlayerViewState } from '@phoenicians/game';
 import { CATEGORY_LABEL, RESOURCE_LABEL, costText, describeEvent } from '../format';
-import { CurseHand, ForcedAttackDialog, ForesightDialog } from './Curses';
+import { CurseHand, DiscardDialog, ForcedAttackDialog, ForesightDialog } from './Curses';
 import { ReactionBar } from './Reactions';
 
 type Props = BoardProps<PlayerViewState>;
-
-const emptySelection = (): ResourceMap => ({ buildingMaterials: 0, warriors: 0, grain: 0, purpleDye: 0 });
 
 function Resources({ player }: { player: Player }) {
   const counts = inventoryCounts(player.inventory);
@@ -36,7 +33,6 @@ export function Board({ G, moves, playerID, matchData }: Props) {
   const [attacking, setAttacking] = useState(false);
   const [guessTarget, setGuessTarget] = useState('');
   const [guessProphecy, setGuessProphecy] = useState('');
-  const [discard, setDiscard] = useState<ResourceMap>(emptySelection);
 
   // One move at a time: the server rejects a move sent before the previous one's
   // result arrives, so buttons stay disabled until the new state comes back.
@@ -121,40 +117,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
       )}
       {pending?.kind === 'forcedAttack' && pending.playerId === playerID && <ForcedAttackDialog G={G} targetId={pending.targetId} send={send} busy={busy} />}
 
-      {pending?.kind === 'discardInventory' && me && pending.playerId === me.id && (
-        <div className="panel dialog">
-          <h3>Choose {pending.count} cards to discard</h3>
-          <p className="muted small">
-            {pending.source.type === 'calamity'
-              ? `Calamity: ${G.config.expedition.calamities.find((c) => c.id === (pending.source as { calamityId: string }).calamityId)?.name}`
-              : 'Structural Burden: one card per structure you own.'}
-          </p>
-          <div className="steppers">
-            {RESOURCES.map((r) => (
-              <label key={r}>
-                {RESOURCE_LABEL[r]} ({me.inventory[r].length})
-                <input
-                  type="number"
-                  min={0}
-                  max={me.inventory[r].length}
-                  value={discard[r]}
-                  onChange={(e) => setDiscard({ ...discard, [r]: Math.max(0, Math.min(me.inventory[r].length, Number(e.target.value))) })}
-                />
-              </label>
-            ))}
-          </div>
-          <button
-            className="primary"
-            disabled={busy || RESOURCES.reduce((n, r) => n + discard[r], 0) !== pending.count}
-            onClick={() => {
-              send('chooseDiscard', discard);
-              setDiscard(emptySelection());
-            }}
-          >
-            Discard {RESOURCES.reduce((n, r) => n + discard[r], 0)} / {pending.count}
-          </button>
-        </div>
-      )}
+      {pending?.kind === 'discardInventory' && me && pending.playerId === me.id && <DiscardDialog G={G} me={me} send={send} busy={busy} />}
 
       <div className="columns">
         <div className="stack">

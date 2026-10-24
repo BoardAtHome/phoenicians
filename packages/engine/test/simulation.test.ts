@@ -104,10 +104,10 @@ describe('random play', () => {
   it.each([
     [3, false],
     [5, false],
-    [7, false],
+    [6, false],
     [3, true],
     [5, true],
-    [7, true],
+    [6, true],
   ])('keeps every card accounted for over 300 turns with %i players (reactions: %s)', (playerCount, reactions) => {
     const state = newGame(playerCount, playerCount, { reactions });
     const r = createRng(playerCount * 100);

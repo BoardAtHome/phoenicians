@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import { baselineConfig } from '@phoenicians/engine';
 import type { SetupData } from '@phoenicians/game';
 import { navigate } from '../App';
 import { api, getAdminToken, lobby } from '../api';
+
+const { min, max } = baselineConfig.players;
+const PLAYER_COUNTS = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 
 export function Home() {
   const [names, setNames] = useState(['', '', '']);
@@ -41,7 +45,7 @@ export function Home() {
         <label className="row">
           Players
           <select value={names.length} onChange={(e) => resize(Number(e.target.value))}>
-            {[3, 4, 5, 6, 7].map((n) => (
+            {PLAYER_COUNTS.map((n) => (
               <option key={n}>{n}</option>
             ))}
           </select>

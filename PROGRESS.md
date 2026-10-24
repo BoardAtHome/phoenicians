@@ -11,20 +11,29 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - Milestone 4 — Curses on your own turn (PR #4, merged)
 - Milestone 5 — Reactions (PR #5, merged)
 
-## Current milestone: 6 — Playtest tooling (branch `milestone-6-playtest`)
+- Milestone 6 — Playtest tooling (PR #6, merged)
 
-- [x] Engine `stats.ts`: `gameStats`, `eventsCsv`, `summaryRow`; private log events
-      (`prophecyDealt`, `prophecyMet`, `prophecyLost`, `prophecyChanged`, `windowOpened`) hidden from players until game over
-- [x] Server: `/api/admin/matches` (+ `/:id`, `/:id/log.csv`, `/:id/export.json`, `/:id/end`, `/:id/undo`), `/api/admin/stats.csv`, `/api/versions/:id`
-- [x] `HistoryStore` keeps the last 30 states per match in memory for undo; changes are pushed to connected players
-- [x] Client admin tabs: `pages/admin/ConfigForm.tsx`, `Versions.tsx`, `Matches.tsx`
-- [x] DEPLOY.md; render.yaml deploys only after CI passes
-- [x] Browser check; PR
+## Current milestone: 7 — Table UI (branch `claude/project-thread-mdrr03`)
 
-## After milestone 6
+Redesign of the game screen from the co-creator's mobile mockup. Plan: https://claude.ai/artifact/9gEguFXddeLm5B4S5641dK
+Jamil's direction: the mockup is inspiration for the layout only. Our established rules win every conflict,
+keep the current look (colors, fonts, panels), and take liberties where the mockup doesn't cover something.
+The new screen is opt-in with `?table=1` on a match URL until step 4 makes it the default.
 
-All six planned milestones are built. Open items:
+- [x] Step 1: player count 3–6 (baseline config, Home page reads it); table shell in `client/src/table/`:
+      seats around the table (next player on your left, then across the top, then right), Expedition deck
+      in the middle, ticker, dock (Prophecy peek, resource tiles, village/Curses/coins strip, Set out / Draw / Keep),
+      village and activity sheets. Reactions, Curses and pending choices reuse the classic components for now.
+- [ ] Step 2: Market sheet and Build, Actions sheet (Ritual, Divine Coin, Guess), attack mode and attack flow
+- [ ] Step 3: Curse hand, target pickers, reaction prompt and waiting banner (config timer, pause, pass),
+      Divine Foresight, discard choices, Forced Conflict
+- [ ] Step 4: game menu (invite, leave seat, versions), game-over card, desktop polish, table becomes default,
+      classic board removed, browser check at 3/5/6 players on phone and desktop
+
+## After milestone 7
+
 - Deploy on Render (DEPLOY.md). The free database is deleted after 30 days, so upgrade it (about $6/month).
+- The live published config may still say 7 players max; set "Most players" to 6 in Admin › Config if so.
 - Possible extras: auto-pass toggle for windows, boardgame.io dependency advisories, config/backup export.
 
 ## Decisions and notes

@@ -5,7 +5,7 @@ import { countAllExpeditionCards, newGame } from './helpers';
 const seats = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
 
 describe('setupGame', () => {
-  it.each([3, 7])('deals a %i-player game', (n) => {
+  it.each([3, 6])('deals a %i-player game', (n) => {
     const state = newGame(n);
     expect(state.players).toHaveLength(n);
     expect(new Set(state.players.map((p) => p.prophecyId)).size).toBe(n);

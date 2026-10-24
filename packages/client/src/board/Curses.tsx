@@ -9,6 +9,7 @@ import {
   type CurseTarget,
   type Player,
   type Resource,
+  type ResourceMap,
 } from '@phoenicians/engine';
 import type { PlayerViewState } from '@phoenicians/game';
 import { RESOURCE_LABEL } from '../format';
@@ -191,6 +192,50 @@ export function ForcedAttackDialog({ G, targetId, send, busy }: { G: PlayerViewS
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+const emptySelection = (): ResourceMap => ({ buildingMaterials: 0, warriors: 0, grain: 0, purpleDye: 0 });
+
+/** A Calamity or Structural Burden: the affected player picks which inventory cards to discard. */
+export function DiscardDialog({ G, me, send, busy }: { G: PlayerViewState; me: Player; send: Send; busy: boolean }) {
+  const [discard, setDiscard] = useState<ResourceMap>(emptySelection);
+  const pending = G.pendingChoice;
+  if (pending?.kind !== 'discardInventory') return null;
+  const total = RESOURCES.reduce((n, r) => n + discard[r], 0);
+  return (
+    <div className="panel dialog">
+      <h3>Choose {pending.count} cards to discard</h3>
+      <p className="muted small">
+        {pending.source.type === 'calamity'
+          ? `Calamity: ${G.config.expedition.calamities.find((c) => c.id === (pending.source as { calamityId: string }).calamityId)?.name}`
+          : 'Structural Burden: one card per structure you own.'}
+      </p>
+      <div className="steppers">
+        {RESOURCES.map((r) => (
+          <label key={r}>
+            {RESOURCE_LABEL[r]} ({me.inventory[r].length})
+            <input
+              type="number"
+              min={0}
+              max={me.inventory[r].length}
+              value={discard[r]}
+              onChange={(e) => setDiscard({ ...discard, [r]: Math.max(0, Math.min(me.inventory[r].length, Number(e.target.value))) })}
+            />
+          </label>
+        ))}
+      </div>
+      <button
+        className="primary"
+        disabled={busy || total !== pending.count}
+        onClick={() => {
+          send('chooseDiscard', discard);
+          setDiscard(emptySelection());
+        }}
+      >
+        Discard {total} / {pending.count}
+      </button>
     </div>
   );
 }
