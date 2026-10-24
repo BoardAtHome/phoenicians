@@ -296,7 +296,7 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
 
   player.curseHand.splice(player.curseHand.indexOf(card), 1);
   state.curseDiscard.push(card);
-  const answering = entryId === null ? undefined : topEntry(state)?.kind;
+  const answering = state.window ? topEntry(state)?.kind : undefined;
   log(state, 'cursePlayed', playerId, {
     curseId: card.curseId,
     targetId: target.playerId,

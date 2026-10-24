@@ -46,7 +46,10 @@ export function ReactionBar({ G, me, send, moves, busy }: { G: PlayerViewState; 
   useEffect(() => setChoosing(null), [window.id]);
 
   const canRespond = !!me && window.eligible.includes(me.id) && !window.passed.includes(me.id);
-  const usable = canRespond ? me!.curseHand.filter((c) => canPlayInWindow(G, me!.id, c.curseId)) : [];
+  // One button per kind of Curse, even when holding several copies.
+  const usable = canRespond
+    ? me!.curseHand.filter((c, i, hand) => canPlayInWindow(G, me!.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i)
+    : [];
   const card = usable.find((c) => c.id === choosing);
   const heldByOther = window.heldBy && window.heldBy !== me?.id;
 
