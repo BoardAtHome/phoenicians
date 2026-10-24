@@ -1,4 +1,4 @@
-import type { Game } from 'boardgame.io';
+import type { Game, MoveFn } from 'boardgame.io';
 import { ActivePlayers, INVALID_MOVE } from 'boardgame.io/core';
 import {
   attack,
@@ -42,6 +42,10 @@ export interface PhoeniciansOptions {
   resolveConfig?: (setupData: SetupData | undefined) => ResolvedConfig;
 }
 
+type Move = MoveFn<GameState>;
+const serverOnly = (moves: Record<string, Move>) =>
+  Object.fromEntries(Object.entries(moves).map(([name, move]) => [name, { move, client: false }]));
+
 const toResult = (result: Result) => (result.ok ? undefined : INVALID_MOVE);
 const rngFrom = (random: { Number: () => number }): Rng => ({ next: () => random.Number() });
 
@@ -76,7 +80,9 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
 
     turn: { activePlayers: ActivePlayers.ALL },
 
-    moves: {
+    // Moves run on the server only (`client: false`): clients see a filtered view
+    // without deck contents or other players' secrets, so they cannot predict results.
+    moves: serverOnly({
       build: ({ G, playerID }, slot: number) => toResult(buildStructure(G, playerID, slot)),
       attack: ({ G, playerID, random }, targetId: string, structureCardId: string) =>
         toResult(attack(G, playerID, targetId, structureCardId, rngFrom(random))),
@@ -88,7 +94,7 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
       draw: ({ G, playerID, random }) => toResult(drawExpeditionCard(G, playerID, rngFrom(random))),
       stopExpedition: ({ G, playerID }) => toResult(stopExpedition(G, playerID)),
       chooseDiscard: ({ G, playerID }, selection: ResourceMap) => toResult(resolveDiscardChoice(G, playerID, selection)),
-    },
+    }),
 
     endIf: ({ G }) => (G.winnerId ? { winner: G.winnerId } : undefined),
 
