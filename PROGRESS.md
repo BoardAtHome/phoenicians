@@ -7,21 +7,19 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 
 - Milestone 1 — Engine core (PR #1, merged)
 - Milestone 2 — Prophecies, victory, attacks, Divine Coins (PR #2, merged)
+- Milestone 3 — Online play (PR #3, merged)
 
-## Current milestone: 3 — Online play (branch `milestone-3-online-play`)
+## Current milestone: 4 — Curses on your own turn (branch `milestone-4-curses`)
 
-- [x] `packages/game`: boardgame.io wrapper. All players may send moves; the engine decides legality.
-      `playerView` hides others' curses and Prophecies and all deck order.
-- [x] `packages/server`: boardgame.io server, config store (draft, versions, rollback), admin password.
-      Env: PORT, ADMIN_PASSWORD, DATABASE_URL (Postgres; in-memory if unset), BUILD_VERSION.
-- [x] `packages/client`: Vite + React lobby, match links, board (verified end to end in a browser)
-- [x] Admin page: JSON config editor, publish versions, activate, draft from version; public changelog page
-- [x] Deploy setup: `render.yaml` Blueprint, README. Matches and configs persist in Postgres.
-- [x] Open PR (awaiting merge)
+- [x] Engine: 12 Curse effects in `curses.ts` (`playCurse`). Revival is reactive, so it moves to milestone 5.
+- [x] Follow-up choices: Divine Foresight arrange, Forced Conflict target, Structural Burden discard
+- [ ] Unit tests per Curse
+- [ ] Game moves + Foresight cards visible only to their player
+- [ ] Board UI: play a Curse, pick targets, follow-up dialogs
+- [ ] Browser check + PR
 
 ## Next milestones
 
-4. Non-reactive curses
 5. Reaction windows and reactive curses
 6. Playtest tooling (log export, stats, config editor UI, version history UI)
 
@@ -33,3 +31,8 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - Spent and discarded resource cards go to the expedition discard pile.
 - Curse copy counts in the baseline are a placeholder (2 each) until set before a playtest.
 - All rules decisions are recorded in the build plan's "Rules decisions" section.
+- "Choose a player" Curses may target anyone, including yourself; "opponent" Curses only others.
+- Forced Conflict: the caster picks Player A and Player B; Player A picks the structure and pays the attack cost.
+- Military Sabotage: the caster picks which structures are destroyed and gets Conqueror credit.
+- Structural Burden: the target picks which cards to discard.
+- Extra Expedition on your own turn: another expedition starts when the current one ends.

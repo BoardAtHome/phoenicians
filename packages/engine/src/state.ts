@@ -38,6 +38,10 @@ export interface Player {
   divineCoins: number;
   /** Cumulative counters. They belong to the player and survive Prophecy replacement. */
   counters: { structuresDestroyed: number; ritualsPerformed: number };
+  /** Construction Ban: number of this player's upcoming turns without building. */
+  constructionBans: number;
+  /** True during a turn in which this player may not build. */
+  constructionBanned: boolean;
 }
 
 export interface Expedition {
@@ -49,12 +53,18 @@ export interface Expedition {
 }
 
 /** A choice the game is waiting on before it can continue. */
-export type PendingChoice = {
-  kind: 'discardInventory';
-  playerId: string;
-  count: number;
-  calamityId: string;
-};
+export type PendingChoice =
+  /** The player picks `count` inventory cards to discard. */
+  | {
+      kind: 'discardInventory';
+      playerId: string;
+      count: number;
+      source: { type: 'calamity'; calamityId: string } | { type: 'curse'; curseId: string };
+    }
+  /** Divine Foresight: the player reorders the top `count` Expedition cards. */
+  | { kind: 'arrangeExpedition'; playerId: string; count: number }
+  /** Forced Conflict: `playerId` must pick one of `targetId`'s structures to attack. */
+  | { kind: 'forcedAttack'; playerId: string; targetId: string };
 
 export type Phase = 'action' | 'expedition' | 'gameOver';
 
@@ -70,7 +80,13 @@ export interface GameState {
   /** Which config version and app build the match runs on, for playtest records. */
   meta?: { configVersion: string; build: string };
   players: Player[];
-  turn: { number: number; activePlayerId: string; phase: Phase };
+  turn: {
+    number: number;
+    activePlayerId: string;
+    phase: Phase;
+    /** Extra Expedition: expeditions still owed to the active player after the current one. */
+    extraExpeditions: number;
+  };
   expeditionDeck: ExpeditionCard[];
   expeditionDiscard: ExpeditionCard[];
   expedition: Expedition | null;

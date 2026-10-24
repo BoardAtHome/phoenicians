@@ -33,7 +33,7 @@ describe('setupGame', () => {
 
   it('starts with the chosen first player and keeps seat order', () => {
     const state = setupGame(baselineConfig, seats(4), 'p2', createRng(1));
-    expect(state.turn).toEqual({ number: 1, activePlayerId: 'p2', phase: 'action' });
+    expect(state.turn).toEqual({ number: 1, activePlayerId: 'p2', phase: 'action', extraExpeditions: 0 });
     expect(state.players.map((p) => p.id)).toEqual(['p2', 'p3', 'p0', 'p1']);
   });
 

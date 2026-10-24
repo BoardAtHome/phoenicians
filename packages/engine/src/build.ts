@@ -7,6 +7,7 @@ import { checkActive, getPlayer, log } from './turn';
 export function buildStructure(state: GameState, playerId: string, slot: number): Result {
   const check = checkActive(state, playerId, 'action');
   if (!check.ok) return check;
+  if (getPlayer(state, playerId)!.constructionBanned) return fail('A Construction Ban stops you building this turn');
   const card = state.shop[slot];
   if (!card) return fail('That shop slot is empty');
   const structure = state.config.structures.find((s) => s.id === card.structureId)!;

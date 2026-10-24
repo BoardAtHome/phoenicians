@@ -28,11 +28,16 @@ export function endActionPhase(state: GameState, playerId: string): Result {
 export function endTurn(state: GameState): void {
   const n = state.players.length;
   const current = state.players.findIndex((p) => p.id === state.turn.activePlayerId);
+  state.players[current]!.constructionBanned = false;
   for (let step = 1; step <= n; step++) {
     const next = state.players[(current + step) % n]!;
     if (!next.eliminated) {
-      state.turn = { number: state.turn.number + 1, activePlayerId: next.id, phase: 'action' };
+      state.turn = { number: state.turn.number + 1, activePlayerId: next.id, phase: 'action', extraExpeditions: 0 };
       log(state, 'turnStarted', next.id);
+      if (next.constructionBans > 0) {
+        next.constructionBans--;
+        next.constructionBanned = true;
+      }
       // Victory is checked automatically before the player can take any action.
       if (isProphecyMet(state, next)) declareWinner(state, next.id, 'prophecy');
       return;
