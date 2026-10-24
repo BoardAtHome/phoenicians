@@ -79,6 +79,8 @@ export interface GameState {
   curseDiscard: CurseCard[];
   /** Prophecy cards not dealt to anyone. Prophecy Disruption draws from here. */
   prophecyDeck: string[];
+  /** Discarded and revealed Prophecies. Reshuffled into the deck if it runs out. */
+  prophecyDiscard: string[];
   winnerId: string | null;
   log: GameEvent[];
 }

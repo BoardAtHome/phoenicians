@@ -1,4 +1,4 @@
-import { baselineConfig, createRng, setupGame, type ExpeditionCard, type GameState, type Player, type Resource } from '../src';
+import { baselineConfig, createRng, drawExpeditionCard, endActionPhase, setupGame, stopExpedition, type ExpeditionCard, type GameState, type Player, type Resource } from '../src';
 
 export const rng = () => createRng(42);
 
@@ -26,4 +26,20 @@ export function countAllExpeditionCards(state: GameState): number {
   let n = state.expeditionDeck.length + state.expeditionDiscard.length + (state.expedition?.drawn.length ?? 0);
   for (const p of state.players) n += Object.values(p.inventory).reduce((m, cards) => m + cards.length, 0);
   return n;
+}
+
+/** Ends the active player's turn with a one-card expedition. */
+export function passTurn(state: GameState): void {
+  const id = state.turn.activePlayerId;
+  endActionPhase(state, id);
+  stackDeck(state, [res('grain')]);
+  drawExpeditionCard(state, id, rng());
+  stopExpedition(state, id);
+}
+
+/** Gives a player a structure straight from the building deck, or a fresh copy if none is left. */
+export function grant(state: GameState, player: Player, structureId: string): void {
+  const index = state.buildingDeck.findIndex((s) => s.structureId === structureId);
+  const card = index >= 0 ? state.buildingDeck.splice(index, 1)[0]! : { id: `t-${nextId++}`, structureId };
+  player.structures.push(card);
 }

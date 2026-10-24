@@ -97,6 +97,7 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
     curseDeck,
     curseDiscard: [],
     prophecyDeck,
+    prophecyDiscard: [],
     winnerId: null,
     log: [{ turn: 1, type: 'gameStarted', data: { players: players.map((p) => p.id) } }],
   };

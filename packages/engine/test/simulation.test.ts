@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   RESOURCES,
   buildStructure,
+  attack,
+  buyDivineCoin,
   canAfford,
+  performRitual,
   createRng,
   drawExpeditionCard,
   endActionPhase,
@@ -18,13 +21,20 @@ describe('random play', () => {
     const r = createRng(playerCount * 100);
     const totalStructures = state.config.structures.reduce((n, s) => n + s.copies, 0);
 
-    while (state.turn.number < 300) {
+    const totalCurses = state.config.curses.reduce((n, c) => n + c.copies, 0);
+
+    while (state.turn.number < 300 && state.turn.phase !== 'gameOver') {
       const player = active(state);
+      performRitual(state, player.id, r);
+      buyDivineCoin(state, player.id);
+      const victim = state.players.find((p) => p.id !== player.id && !p.eliminated && p.structures.length > 0);
+      if (victim && r.next() < 0.5) attack(state, player.id, victim.id, victim.structures[0]!.id, r);
       for (let slot = 0; slot < state.shop.length; slot++) {
         const card = state.shop[slot];
         const cost = card && state.config.structures.find((s) => s.id === card.structureId)!.cost;
         if (cost && canAfford(player.inventory, cost)) buildStructure(state, player.id, slot);
       }
+      if (state.winnerId) break;
       expect(endActionPhase(state, player.id).ok).toBe(true);
 
       while (state.turn.activePlayerId === player.id) {
@@ -50,6 +60,8 @@ describe('random play', () => {
         state.shop.filter(Boolean).length +
         state.players.reduce((n, p) => n + p.structures.length, 0);
       expect(structures).toBe(totalStructures);
+      const curses = state.curseDeck.length + state.curseDiscard.length + state.players.reduce((n, p) => n + p.curseHand.length, 0);
+      expect(curses).toBe(totalCurses);
     }
   });
 });
