@@ -13,7 +13,7 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 
 - [x] Engine: 12 Curse effects in `curses.ts` (`playCurse`). Revival is reactive, so it moves to milestone 5.
 - [x] Follow-up choices: Divine Foresight arrange, Forced Conflict target, Structural Burden discard
-- [ ] Unit tests per Curse
+- [x] Unit tests per Curse (99 engine tests; random play now casts Curses too)
 - [ ] Game moves + Foresight cards visible only to their player
 - [ ] Board UI: play a Curse, pick targets, follow-up dialogs
 - [ ] Browser check + PR
