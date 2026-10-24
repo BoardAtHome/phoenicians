@@ -1,0 +1,24 @@
+{
+  "name": "@phoenicians/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@phoenicians/engine": "0.1.0",
+    "@phoenicians/game": "0.1.0",
+    "koa-static": "^5.0.0",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/koa-static": "^4.0.4",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1"
+  }
+}

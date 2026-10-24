@@ -67,6 +67,8 @@ export interface GameEvent {
 
 export interface GameState {
   config: GameConfig;
+  /** Which config version and app build the match runs on, for playtest records. */
+  meta?: { configVersion: string; build: string };
   players: Player[];
   turn: { number: number; activePlayerId: string; phase: Phase };
   expeditionDeck: ExpeditionCard[];

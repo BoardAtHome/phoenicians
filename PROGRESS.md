@@ -6,20 +6,21 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 ## Done
 
 - Milestone 1 — Engine core (PR #1, merged)
+- Milestone 2 — Prophecies, victory, attacks, Divine Coins (PR #2, merged)
 
-## Current milestone: 2 — Prophecies and victory (branch `milestone-2-prophecies`)
+## Current milestone: 3 — Online play (branch `milestone-3-online-play`)
 
-- [x] Prophecy evaluation and automatic win at turn start (`prophecy.ts`, `turn.ts`)
-- [x] Attacks: destroy, Conqueror credit, return to deck and shuffle, refill shop (`actions.ts`)
-- [x] Rituals: draw a curse, ritual count, hand limit, curse deck reshuffle
-- [x] Divine Coins: buy, guess (public), elimination, last player standing
-- [x] Prophecy replacement helper for Prophecy Disruption
-- [x] Tests (80 total, incl. the rulebook Warlord example)
+- [x] `packages/game`: boardgame.io wrapper. All players may send moves; the engine decides legality.
+      `playerView` hides others' curses and Prophecies and all deck order.
+- [x] `packages/server`: boardgame.io server, config store (draft, versions, rollback), admin password.
+      Env: PORT, ADMIN_PASSWORD, DATABASE_URL (Postgres; in-memory if unset), BUILD_VERSION.
+- [x] `packages/client`: Vite + React lobby, match links, board (verified end to end in a browser)
+- [x] Admin page: JSON config editor, publish versions, activate, draft from version; public changelog page
+- [x] Deploy setup: `render.yaml` Blueprint, README. Matches and configs persist in Postgres.
 - [x] Open PR (awaiting merge)
 
 ## Next milestones
 
-3. Online play (boardgame.io server, lobby, React client, admin config, hosting)
 4. Non-reactive curses
 5. Reaction windows and reactive curses
 6. Playtest tooling (log export, stats, config editor UI, version history UI)
