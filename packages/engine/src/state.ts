@@ -44,6 +44,8 @@ export interface Player {
   constructionBanned: boolean;
   /** Revival: eliminated now, returns at the start of their next turn. */
   reviving: boolean;
+  /** Turn on which the current Prophecy was first seen met, for playtest stats. Null while unmet. */
+  prophecyMetTurn: number | null;
 }
 
 /**
@@ -135,6 +137,10 @@ export interface GameEvent {
   type: string;
   playerId?: string;
   data?: Record<string, unknown>;
+  /** Server time (ms), stamped by the server. */
+  at?: number;
+  /** Playtest records that would reveal secrets (hands, Prophecies). Hidden from players until the game ends. */
+  private?: true;
 }
 
 export interface GameState {
