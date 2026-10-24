@@ -141,6 +141,8 @@ function Table({ head, rows }: { head: string[]; rows: (string | number | null)[
 
 /** The playtest numbers, grouped like the scenario list in the Playtesting Guide. */
 export function StatsView({ stats }: { stats: GameStats }) {
+  // In a game still being played, Prophecies and hands are secret; the admin may be a player too.
+  const [spoilers, setSpoilers] = useState(stats.summary.finished);
   const s = stats.summary;
   const x = stats.expeditions;
   const st = stats.structures;
@@ -170,20 +172,30 @@ export function StatsView({ stats }: { stats: GameStats }) {
         Destroyed by attacks {st.destroyedByAttack}, by Curses {st.destroyedByCurse} · Turns with no building bought {st.turnsWithoutBuild} · Market Manipulations {st.marketManipulations}
       </p>
 
-      <h3>Prophecies</h3>
-      <Table
-        head={['Player', 'Prophecy', 'Held from turn', 'First met on turn', 'Outcome', 'Until turn']}
-        rows={stats.prophecies.map((p) => [p.player, p.prophecy, p.fromTurn, p.metOnTurn, OUTCOME[p.outcome] ?? p.outcome, p.endTurn])}
-      />
+      {!spoilers ? (
+        <div className="stack">
+          <h3>Prophecies and Curses</h3>
+          <p className="muted small">Hidden while the game is in progress, since they show players' secret Prophecies and hands.</p>
+          <div><button onClick={() => setSpoilers(true)}>Show anyway</button></div>
+        </div>
+      ) : (
+        <>
+          <h3>Prophecies</h3>
+          <Table
+            head={['Player', 'Prophecy', 'Held from turn', 'First met on turn', 'Outcome', 'Until turn']}
+            rows={stats.prophecies.map((p) => [p.player, p.prophecy, p.fromTurn, p.metOnTurn, OUTCOME[p.outcome] ?? p.outcome, p.endTurn])}
+          />
 
-      <h3>Curses</h3>
-      <Table
-        head={['Curse', 'Stars', 'Played', 'As a response', 'Canceled', 'No effect', 'Could have been played']}
-        rows={stats.curses.map((c) => [c.curse, '★'.repeat(c.stars), c.played, c.asAnswer, c.canceled, c.fizzled, c.offered])}
-      />
-      <p className="small">
-        Reaction windows {r.windows} · closed when all passed {r.closedByPass} · by the timer {r.closedByTimer} · responses {r.answered} · longest counter-Curse chain {r.longestChain}
-      </p>
+          <h3>Curses</h3>
+          <Table
+            head={['Curse', 'Stars', 'Played', 'As a response', 'Canceled', 'No effect', 'Could have been played']}
+            rows={stats.curses.map((c) => [c.curse, '★'.repeat(c.stars), c.played, c.asAnswer, c.canceled, c.fizzled, c.offered])}
+          />
+          <p className="small">
+            Reaction windows {r.windows} · closed when all passed {r.closedByPass} · by the timer {r.closedByTimer} · responses {r.answered} · longest counter-Curse chain {r.longestChain}
+          </p>
+        </>
+      )}
 
       <h3>Players</h3>
       <Table

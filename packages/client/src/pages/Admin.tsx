@@ -52,6 +52,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [tab, setTabState] = useState<Tab>(tabFromHash);
   const setTab = (next: Tab) => {
     setTabState(next);
+    setMessage('');
     window.history.replaceState(null, '', `#${next}`);
   };
   const [draft, setDraft] = useState<Draft | null>(null);

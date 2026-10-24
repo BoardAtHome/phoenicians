@@ -60,7 +60,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 16px; }
 .row input:not([type]), .row input[type='text'] { flex: 1; min-width: 140px; }
 .spread { justify-content: space-between; }
 .columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
-@media (max-width: 860px) { .columns { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .columns { grid-template-columns: minmax(0, 1fr); } }
 
 .muted { color: var(--muted); }
 .small { font-size: 12.5px; }
@@ -157,3 +157,4 @@ input.num { width: 76px; }
 .save-bar { position: sticky; bottom: 0; background: var(--panel); padding: 10px 0 4px; border-top: 1px solid var(--line); }
 ul.diff { margin: 4px 0; padding-left: 18px; font-size: 0.85em; max-height: 260px; overflow: auto; }
 .stats-view h3 { margin: 12px 0 0; }
+.config-form, .stats-view, .panel { min-width: 0; }

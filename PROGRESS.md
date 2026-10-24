@@ -9,20 +9,23 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - Milestone 2 — Prophecies, victory, attacks, Divine Coins (PR #2, merged)
 - Milestone 3 — Online play (PR #3, merged)
 - Milestone 4 — Curses on your own turn (PR #4, merged)
+- Milestone 5 — Reactions (PR #5, merged)
 
-## Current milestone: 5 — Reactions (branch `milestone-5-reactions`)
+## Current milestone: 6 — Playtest tooling (branch `milestone-6-playtest`)
 
-- [x] Engine: action stack + reaction windows in `reactions.ts` (pass, hold, release, close)
-- [x] Engine: 8 reactive Curses, Revival, out-of-turn Extra Expedition (`curses.ts` `prepareResponse`, `turn.ts` `endTurn`)
-- [x] Tests: `reactions.test.ts` plus random play with windows on (122 engine tests)
-- [x] Game moves `pass`, `holdWindow`, `releaseWindow`, `closeWindow`; the server stamps window deadlines
-- [x] Board: `client/src/board/Reactions.tsx` reaction bar with countdown
-- [x] 3-player browser check; PR
+- [x] Engine `stats.ts`: `gameStats`, `eventsCsv`, `summaryRow`; private log events
+      (`prophecyDealt`, `prophecyMet`, `prophecyLost`, `prophecyChanged`, `windowOpened`) hidden from players until game over
+- [x] Server: `/api/admin/matches` (+ `/:id`, `/:id/log.csv`, `/:id/export.json`, `/:id/end`, `/:id/undo`), `/api/admin/stats.csv`, `/api/versions/:id`
+- [x] `HistoryStore` keeps the last 30 states per match in memory for undo; changes are pushed to connected players
+- [x] Client admin tabs: `pages/admin/ConfigForm.tsx`, `Versions.tsx`, `Matches.tsx`
+- [x] DEPLOY.md; render.yaml deploys only after CI passes
+- [x] Browser check; PR
 
-## Next milestones
+## After milestone 6
 
-6. Playtest tooling (log export, stats, config editor UI, version history UI)
-   Possible extras: an auto-pass toggle for windows, patching boardgame.io dependency advisories.
+All six planned milestones are built. Open items:
+- Deploy on Render (DEPLOY.md). The free database is deleted after 30 days, so upgrade it (about $6/month).
+- Possible extras: auto-pass toggle for windows, boardgame.io dependency advisories, config/backup export.
 
 ## Decisions and notes
 
@@ -57,3 +60,7 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - Extra Expedition played outside your turn: you take the expedition as soon as the current turn
   ends, then play carries on from the player whose turn it was.
 - Attacks and rituals are paid when declared; a canceled attack keeps the cost spent.
+- Stats in progress hide Prophecies and Curse details behind "Show anyway", since the admin may be playing.
+- Undo history lives in server memory (last 30 states per match) and resets on restart or deploy.
+- "Avg own turn of first purchase" approximates the build plan's "turns to afford each category".
+- Ending a match sets `ctx.gameover = { endedByAdmin: true }` with no winner.
