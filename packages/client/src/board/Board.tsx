@@ -12,6 +12,7 @@ import {
 } from '@phoenicians/engine';
 import { HIDDEN, type PlayerViewState } from '@phoenicians/game';
 import { CATEGORY_LABEL, RESOURCE_LABEL, costText, describeEvent } from '../format';
+import { CurseHand, ForcedAttackDialog, ForesightDialog } from './Curses';
 
 type Props = BoardProps<PlayerViewState>;
 
@@ -71,7 +72,9 @@ export function Board({ G, moves, playerID, matchData }: Props) {
   const statusText = winner
     ? `${winner.name} won the game.`
     : pending
-      ? `Waiting for ${G.players.find((p) => p.id === pending.playerId)?.name} to choose cards to discard.`
+      ? `Waiting for ${G.players.find((p) => p.id === pending.playerId)?.name} to ${
+          pending.kind === 'discardInventory' ? 'choose cards to discard' : pending.kind === 'arrangeExpedition' ? 'arrange the Expedition deck' : 'choose a structure to attack'
+        }.`
       : G.turn.phase === 'expedition'
         ? `${active.name} is on an expedition.`
         : `${active.name} is taking actions.`;
@@ -96,9 +99,19 @@ export function Board({ G, moves, playerID, matchData }: Props) {
         </div>
       )}
 
-      {pending && me && pending.playerId === me.id && (
+      {pending?.kind === 'arrangeExpedition' && pending.playerId === playerID && G.foresight.length > 0 && (
+        <ForesightDialog key={G.foresight.map((c) => c.id).join()} G={G} send={send} busy={busy} />
+      )}
+      {pending?.kind === 'forcedAttack' && pending.playerId === playerID && <ForcedAttackDialog G={G} targetId={pending.targetId} send={send} busy={busy} />}
+
+      {pending?.kind === 'discardInventory' && me && pending.playerId === me.id && (
         <div className="panel dialog">
           <h3>Choose {pending.count} cards to discard</h3>
+          <p className="muted small">
+            {pending.source.type === 'calamity'
+              ? `Calamity: ${G.config.expedition.calamities.find((c) => c.id === (pending.source as { calamityId: string }).calamityId)?.name}`
+              : 'Structural Burden: one card per structure you own.'}
+          </p>
           <div className="steppers">
             {RESOURCES.map((r) => (
               <label key={r}>
@@ -134,7 +147,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
               {G.shop.map((card, slot) => {
                 if (!card) return <div key={slot} className="card empty">Empty</div>;
                 const s = structure(card.structureId);
-                const affordable = !!me && canAfford(me.inventory, s.cost);
+                const affordable = !!me && canAfford(me.inventory, s.cost) && !me.constructionBanned;
                 return (
                   <div key={card.id} className={`card cat-${s.category}`}>
                     <div className="card-title">{s.name}</div>
@@ -205,6 +218,8 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                 </button>
               </div>
               {attacking && <p className="hint">Pick an opponent's structure to destroy.</p>}
+              {me.constructionBanned && <p className="hint">A Construction Ban stops you building this turn.</p>}
+              {me.constructionBans > 0 && <p className="hint">You are under a Construction Ban for your next turn.</p>}
 
               <div className="guess">
                 <span className="small">Guess a Prophecy ({costs.guessProphecy} Divine Coin)</span>
@@ -224,18 +239,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                 </button>
               </div>
 
-              <h4>Your Curses ({me.curseHand.length})</h4>
-              <div className="curses">
-                {me.curseHand.map((c) => {
-                  const curse = G.config.curses.find((x) => x.id === c.curseId);
-                  return curse ? (
-                    <div key={c.id} className="curse" title="Playing Curses comes in a later update">
-                      <div className="card-title">{curse.name} <span className="stars">{'★'.repeat(curse.stars)}</span></div>
-                      <div className="small">{curse.text}</div>
-                    </div>
-                  ) : null;
-                })}
-              </div>
+              <CurseHand G={G} me={me} canAct={canAct} send={send} />
             </section>
           )}
         </div>

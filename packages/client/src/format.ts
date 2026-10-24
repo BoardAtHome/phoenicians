@@ -31,21 +31,30 @@ export function describeEvent(G: GameState, e: GameEvent): string | null {
     case 'structureBuilt':
       return `${who} built ${structureName(G, d.structureId)}.`;
     case 'expeditionStarted':
-      return `${who} set out on an expedition.`;
+      return `${who} set out on ${d.extra ? 'an extra' : 'an'} expedition.`;
     case 'expeditionDraw':
       return `${who} drew ${RESOURCE_LABEL[d.resource as Resource]}.`;
     case 'calamityIgnored':
       return `${who} drew "${calamityName(G, d.calamityId)}" as their first card. It was ignored.`;
     case 'calamityApplied':
       return `Calamity for ${who}: ${calamityName(G, d.calamityId)}.`;
-    case 'calamityDiscardChosen':
+    case 'discardChosen':
       return `${who} chose cards to discard.`;
+    case 'cursePlayed': {
+      const curse = G.config.curses.find((c) => c.id === d.curseId)?.name ?? String(d.curseId);
+      const on = d.targetId ? ` on ${name(G, d.targetId)}` : '';
+      const and = d.secondPlayerId ? `, against ${name(G, d.secondPlayerId)}` : '';
+      const res = d.resource ? ` (${RESOURCE_LABEL[d.resource as Resource]})` : '';
+      return `${who} played ${curse}${on}${and}${res}.`;
+    }
+    case 'expeditionArranged':
+      return `${who} rearranged the top of the Expedition deck.`;
     case 'expeditionEnded':
       return `${who} returned with ${d.kept} card${d.kept === 1 ? '' : 's'}.`;
     case 'expeditionDeckReshuffled':
       return 'The Expedition discard pile was reshuffled into a new deck.';
     case 'attacked':
-      return `${who} attacked ${name(G, d.targetId)}.`;
+      return `${who} ${d.forced ? 'was forced to attack' : 'attacked'} ${name(G, d.targetId)}.`;
     case 'structureDestroyed':
       return `${who}'s ${structureName(G, d.structureId)} was destroyed.`;
     case 'ritualPerformed':

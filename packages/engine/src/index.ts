@@ -10,3 +10,15 @@ export { drawExpeditionCard, stopExpedition, resolveDiscardChoice } from './expe
 export { buildStructure } from './build';
 export { attack, buyDivineCoin, destroyStructure, eliminatePlayer, guessProphecy, performRitual, refillShop } from './actions';
 export { drawProphecy, getProphecy, isProphecyMet, prophecyProgress, replaceProphecy } from './prophecy';
+export {
+  arrangeExpedition,
+  burdenCount,
+  CURSE_TARGETS,
+  foresightCards,
+  playCurse,
+  REACTIVE_CURSES,
+  resolveForcedAttack,
+  sabotageCount,
+  type CurseTarget,
+  type TargetField,
+} from './curses';

@@ -59,3 +59,13 @@ describe('Phoenicians game', () => {
     expect(G.counts.expeditionDeck).toBe(200);
   });
 });
+
+describe('Divine Foresight visibility', () => {
+  it('shows the top cards only to the player who cast it', async () => {
+    const { playerView } = await import('../src');
+    const raw = createPhoenicians().setup!({ ctx: { playOrder: ['0', '1', '2'], numPlayers: 3 }, random: { Number: Math.random } } as never);
+    raw.pendingChoice = { kind: 'arrangeExpedition', playerId: '0', count: 3 };
+    expect(playerView(raw, '0').foresight).toHaveLength(3);
+    expect(playerView(raw, '1').foresight).toEqual([]);
+  });
+});

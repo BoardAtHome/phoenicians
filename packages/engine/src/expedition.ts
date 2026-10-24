@@ -23,6 +23,12 @@ function finishExpedition(state: GameState): void {
   addToInventory(player.inventory, expedition.drawn);
   log(state, 'expeditionEnded', player.id, { kept: expedition.drawn.length });
   state.expedition = null;
+  if (state.turn.extraExpeditions > 0) {
+    state.turn.extraExpeditions--;
+    state.expedition = { playerId: player.id, drawn: [], drawCount: 0, lastDrawWasResource: false };
+    log(state, 'expeditionStarted', player.id, { extra: true });
+    return;
+  }
   endTurn(state);
 }
 
@@ -53,7 +59,12 @@ function applyCalamity(state: GameState, player: Player, calamity: CalamityConfi
         discardAllInventory(state, player);
       } else if (count > 0) {
         // The affected player picks which cards to discard.
-        state.pendingChoice = { kind: 'discardInventory', playerId: player.id, count, calamityId: calamity.id };
+        state.pendingChoice = {
+          kind: 'discardInventory',
+          playerId: player.id,
+          count,
+          source: { type: 'calamity', calamityId: calamity.id },
+        };
         return;
       }
       break;
@@ -118,8 +129,8 @@ export function resolveDiscardChoice(state: GameState, playerId: string, selecti
     }
   }
   state.expeditionDiscard.push(...takeFromInventory(player.inventory, selection));
-  log(state, 'calamityDiscardChosen', playerId, { selection });
+  log(state, 'discardChosen', playerId, { selection });
   state.pendingChoice = null;
-  finishExpedition(state);
+  if (pending.source.type === 'calamity') finishExpedition(state);
   return ok;
 }

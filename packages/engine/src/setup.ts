@@ -42,6 +42,8 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
     prophecyId: '',
     divineCoins: config.setup.divineCoins,
     counters: { structuresDestroyed: 0, ritualsPerformed: 0 },
+    constructionBans: 0,
+    constructionBanned: false,
   }));
 
   // Starting resources come out of the expedition deck so the card total stays fixed.
@@ -87,7 +89,7 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
   return {
     config,
     players,
-    turn: { number: 1, activePlayerId: players[0]!.id, phase: 'action' },
+    turn: { number: 1, activePlayerId: players[0]!.id, phase: 'action', extraExpeditions: 0 },
     expeditionDeck,
     expeditionDiscard: [],
     expedition: null,

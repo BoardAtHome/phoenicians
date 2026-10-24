@@ -1,8 +1,10 @@
-import type { GameState } from '@phoenicians/engine';
+import { foresightCards, type ExpeditionCard, type GameState } from '@phoenicians/engine';
 
 /** What a client is allowed to know. Deck contents are replaced by counts. */
 export interface PlayerViewState extends GameState {
   counts: { expeditionDeck: number; buildingDeck: number; curseDeck: number; prophecyDeck: number };
+  /** Divine Foresight: the top Expedition cards, top first, shown only to the player arranging them. */
+  foresight: ExpeditionCard[];
 }
 
 export const HIDDEN = 'hidden';
@@ -30,6 +32,7 @@ export function playerView(G: GameState, playerID: string | null | undefined): P
     curseDeck: [],
     prophecyDeck: [],
     prophecyDiscard: [],
+    foresight: G.pendingChoice?.kind === 'arrangeExpedition' && G.pendingChoice.playerId === playerID ? foresightCards(G) : [],
     counts: {
       expeditionDeck: G.expeditionDeck.length,
       buildingDeck: G.buildingDeck.length,
