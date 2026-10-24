@@ -3,6 +3,15 @@
 App builds. Rule and balance changes made through the admin page are versioned
 separately and shown on the in-app Changelog page.
 
+## 0.4.0 — Curses on your own turn
+
+- Play 12 Curses during your action phase: Resource Exchange, Petty Theft,
+  Divine Foresight, Mass Theft, Extra Expedition, Construction Ban,
+  Market Manipulation, Forced Conflict, Resource Purge, Military Sabotage,
+  Structural Burden, Prophecy Disruption. Played Curses show in the activity log.
+- Divine Foresight shows the top cards only to the player who played it.
+- The 7 reactive Curses and Revival arrive with reaction windows.
+
 ## 0.3.0 — Online play
 
 - Play online: create a game, share the link, each player claims their seat.
