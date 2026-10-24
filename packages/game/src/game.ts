@@ -1,6 +1,7 @@
 import type { Game, MoveFn } from 'boardgame.io';
 import { ActivePlayers, INVALID_MOVE } from 'boardgame.io/core';
 import {
+  arrangeExpedition,
   attack,
   baselineConfig,
   buildStructure,
@@ -9,9 +10,12 @@ import {
   endActionPhase,
   guessProphecy,
   performRitual,
+  playCurse,
+  resolveForcedAttack,
   resolveDiscardChoice,
   setupGame,
   stopExpedition,
+  type CurseTarget,
   type GameConfig,
   type GameState,
   type ResourceMap,
@@ -94,6 +98,11 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
       draw: ({ G, playerID, random }) => toResult(drawExpeditionCard(G, playerID, rngFrom(random))),
       stopExpedition: ({ G, playerID }) => toResult(stopExpedition(G, playerID)),
       chooseDiscard: ({ G, playerID }, selection: ResourceMap) => toResult(resolveDiscardChoice(G, playerID, selection)),
+      playCurse: ({ G, playerID, random }, cardId: string, target: CurseTarget) =>
+        toResult(playCurse(G, playerID, cardId, target ?? {}, rngFrom(random))),
+      arrangeExpedition: ({ G, playerID }, order: string[]) => toResult(arrangeExpedition(G, playerID, order)),
+      forcedAttack: ({ G, playerID, random }, structureCardId: string) =>
+        toResult(resolveForcedAttack(G, playerID, structureCardId, rngFrom(random))),
     }),
 
     endIf: ({ G }) => (G.winnerId ? { winner: G.winnerId } : undefined),
