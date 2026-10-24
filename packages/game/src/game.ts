@@ -6,14 +6,19 @@ import {
   baselineConfig,
   buildStructure,
   buyDivineCoin,
+  closeWindow,
   drawExpeditionCard,
   endActionPhase,
   guessProphecy,
+  holdWindow,
+  passWindow,
   performRitual,
   playCurse,
+  releaseWindow,
   resolveForcedAttack,
   resolveDiscardChoice,
   setupGame,
+  stampWindow,
   stopExpedition,
   type CurseTarget,
   type GameConfig,
@@ -47,8 +52,21 @@ export interface PhoeniciansOptions {
 }
 
 type Move = MoveFn<GameState>;
+/** Every move runs on the server, which also starts the countdown of any reaction window the move opened. */
 const serverOnly = (moves: Record<string, Move>) =>
-  Object.fromEntries(Object.entries(moves).map(([name, move]) => [name, { move, client: false }]));
+  Object.fromEntries(
+    Object.entries(moves).map(([name, move]) => [
+      name,
+      {
+        move: ((context, ...args) => {
+          const result = move(context, ...args);
+          stampWindow(context.G, Date.now());
+          return result;
+        }) as Move,
+        client: false,
+      },
+    ]),
+  );
 
 const toResult = (result: Result) => (result.ok ? undefined : INVALID_MOVE);
 const rngFrom = (random: { Number: () => number }): Rng => ({ next: () => random.Number() });
@@ -87,22 +105,29 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
     // Moves run on the server only (`client: false`): clients see a filtered view
     // without deck contents or other players' secrets, so they cannot predict results.
     moves: serverOnly({
-      build: ({ G, playerID }, slot: number) => toResult(buildStructure(G, playerID, slot)),
+      build: ({ G, playerID, random }, slot: number) => toResult(buildStructure(G, playerID, slot, rngFrom(random))),
       attack: ({ G, playerID, random }, targetId: string, structureCardId: string) =>
         toResult(attack(G, playerID, targetId, structureCardId, rngFrom(random))),
       ritual: ({ G, playerID, random }) => toResult(performRitual(G, playerID, rngFrom(random))),
-      buyDivineCoin: ({ G, playerID }) => toResult(buyDivineCoin(G, playerID)),
+      buyDivineCoin: ({ G, playerID, random }) => toResult(buyDivineCoin(G, playerID, rngFrom(random))),
       guessProphecy: ({ G, playerID, random }, targetId: string, prophecyId: string) =>
         toResult(guessProphecy(G, playerID, targetId, prophecyId, rngFrom(random))),
       endActions: ({ G, playerID }) => toResult(endActionPhase(G, playerID)),
       draw: ({ G, playerID, random }) => toResult(drawExpeditionCard(G, playerID, rngFrom(random))),
-      stopExpedition: ({ G, playerID }) => toResult(stopExpedition(G, playerID)),
-      chooseDiscard: ({ G, playerID }, selection: ResourceMap) => toResult(resolveDiscardChoice(G, playerID, selection)),
+      stopExpedition: ({ G, playerID, random }) => toResult(stopExpedition(G, playerID, rngFrom(random))),
+      chooseDiscard: ({ G, playerID, random }, selection: ResourceMap) =>
+        toResult(resolveDiscardChoice(G, playerID, selection, rngFrom(random))),
       playCurse: ({ G, playerID, random }, cardId: string, target: CurseTarget) =>
         toResult(playCurse(G, playerID, cardId, target ?? {}, rngFrom(random))),
-      arrangeExpedition: ({ G, playerID }, order: string[]) => toResult(arrangeExpedition(G, playerID, order)),
+      arrangeExpedition: ({ G, playerID, random }, order: string[]) =>
+        toResult(arrangeExpedition(G, playerID, order, rngFrom(random))),
       forcedAttack: ({ G, playerID, random }, structureCardId: string) =>
         toResult(resolveForcedAttack(G, playerID, structureCardId, rngFrom(random))),
+      // Reaction windows. The server clock decides when a window may close.
+      pass: ({ G, playerID, random }, windowId: number) => toResult(passWindow(G, playerID, windowId, rngFrom(random), Date.now())),
+      holdWindow: ({ G, playerID }, windowId: number) => toResult(holdWindow(G, playerID, windowId, Date.now())),
+      releaseWindow: ({ G, playerID }, windowId: number) => toResult(releaseWindow(G, playerID, windowId, Date.now())),
+      closeWindow: ({ G, random }, windowId: number) => toResult(closeWindow(G, windowId, Date.now(), rngFrom(random))),
     }),
 
     endIf: ({ G }) => (G.winnerId ? { winner: G.winnerId } : undefined),

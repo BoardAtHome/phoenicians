@@ -69,3 +69,14 @@ describe('Divine Foresight visibility', () => {
     expect(playerView(raw, '1').foresight).toEqual([]);
   });
 });
+
+describe('reaction window visibility', () => {
+  it('tells each player only whether they themselves may respond', async () => {
+    const { playerView } = await import('../src');
+    const raw = createPhoenicians().setup!({ ctx: { playOrder: ['0', '1', '2'], numPlayers: 3 }, random: { Number: Math.random } } as never);
+    raw.window = { id: 1, entryId: 1, eligible: ['1', '2'], passed: ['2'], deadline: 5000, heldBy: null, remainingMs: 0 };
+    expect(playerView(raw, '1').window).toMatchObject({ eligible: ['1'], passed: [], waitingCount: 1 });
+    expect(playerView(raw, '2').window).toMatchObject({ eligible: ['2'], passed: ['2'], waitingCount: 1 });
+    expect(playerView(raw, '0').window).toMatchObject({ eligible: [], passed: [], waitingCount: 1 });
+  });
+});
