@@ -8,3 +8,5 @@ export { canAfford, inventoryCounts, inventorySize } from './inventory';
 export { endActionPhase, getPlayer } from './turn';
 export { drawExpeditionCard, stopExpedition, resolveDiscardChoice } from './expedition';
 export { buildStructure } from './build';
+export { attack, buyDivineCoin, destroyStructure, eliminatePlayer, guessProphecy, performRitual, refillShop } from './actions';
+export { drawProphecy, getProphecy, isProphecyMet, prophecyProgress, replaceProphecy } from './prophecy';

@@ -1,13 +1,9 @@
-import type { GameState, Phase, Player, Result } from './state';
+import { isProphecyMet } from './prophecy';
+import type { GameState, Phase, Result } from './state';
 import { fail, ok } from './state';
+import { log } from './util';
 
-export function getPlayer(state: GameState, playerId: string): Player | undefined {
-  return state.players.find((p) => p.id === playerId);
-}
-
-export function log(state: GameState, type: string, playerId?: string, data?: Record<string, unknown>): void {
-  state.log.push({ turn: state.turn.number, type, ...(playerId ? { playerId } : {}), ...(data ? { data } : {}) });
-}
+export { getPlayer, log } from './util';
 
 /** Checks that `playerId` is the active player, the game is in `phase`, and nothing is waiting on a choice. */
 export function checkActive(state: GameState, playerId: string, phase: Phase): Result {
@@ -37,7 +33,16 @@ export function endTurn(state: GameState): void {
     if (!next.eliminated) {
       state.turn = { number: state.turn.number + 1, activePlayerId: next.id, phase: 'action' };
       log(state, 'turnStarted', next.id);
+      // Victory is checked automatically before the player can take any action.
+      if (isProphecyMet(state, next)) declareWinner(state, next.id, 'prophecy');
       return;
     }
   }
+}
+
+export function declareWinner(state: GameState, playerId: string, reason: 'prophecy' | 'lastPlayerStanding'): void {
+  state.winnerId = playerId;
+  state.turn.phase = 'gameOver';
+  const player = state.players.find((p) => p.id === playerId)!;
+  log(state, 'gameWon', playerId, { reason, prophecyId: player.prophecyId });
 }
