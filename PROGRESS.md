@@ -14,9 +14,9 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
       `playerView` hides others' curses and Prophecies and all deck order.
 - [x] `packages/server`: boardgame.io server, config store (draft, versions, rollback), admin password.
       Env: PORT, ADMIN_PASSWORD, DATABASE_URL (Postgres; in-memory if unset), BUILD_VERSION.
-- [ ] `packages/client`: Vite + React lobby, match links, board
-- [ ] Admin page: JSON config editor, publish versions
-- [ ] Deploy setup (Render)
+- [x] `packages/client`: Vite + React lobby, match links, board (verified end to end in a browser)
+- [x] Admin page: JSON config editor, publish versions, activate, draft from version; public changelog page
+- [x] Deploy setup: `render.yaml` Blueprint, README. Matches and configs persist in Postgres.
 - [ ] Open PR
 
 ## Next milestones

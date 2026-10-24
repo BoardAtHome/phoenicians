@@ -1,0 +1,23 @@
+# Render Blueprint: one web service (game server + client) and one Postgres database.
+# Create it from the Render dashboard with New > Blueprint and pick this repo.
+services:
+  - type: web
+    name: phoenicians
+    runtime: node
+    plan: free # free sleeps after ~15 idle minutes; "starter" stays awake
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/config
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ADMIN_PASSWORD
+        sync: false # entered in the dashboard, never committed
+      - key: DATABASE_URL
+        fromDatabase:
+          name: phoenicians-db
+          property: connectionString
+databases:
+  - name: phoenicians-db
+    plan: free
