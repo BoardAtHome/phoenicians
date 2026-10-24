@@ -44,6 +44,7 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
     counters: { structuresDestroyed: 0, ritualsPerformed: 0 },
     constructionBans: 0,
     constructionBanned: false,
+    reviving: false,
   }));
 
   // Starting resources come out of the expedition deck so the card total stays fixed.
@@ -94,6 +95,11 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
     expeditionDiscard: [],
     expedition: null,
     pendingChoice: null,
+    stack: [],
+    nextEntryId: 1,
+    window: null,
+    nextWindowId: 1,
+    extraExpeditionQueue: [],
     buildingDeck,
     shop,
     curseDeck,

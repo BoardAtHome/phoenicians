@@ -87,5 +87,5 @@ export const baselineConfig: GameConfig = {
     { id: 'structural-burden', name: 'Structural Burden', stars: 3, copies: 2, params: { discardPerStructure: 1 }, text: 'Choose a player; they discard one resource card per structure they own.' },
     { id: 'prophecy-disruption', name: 'Prophecy Disruption', stars: 3, copies: 2, params: {}, text: 'Choose a player; discard their current Prophecy and give them a randomly drawn replacement.' },
   ],
-  reactions: { windowSeconds: 5 },
+  reactions: { windowSeconds: 5, holdSeconds: 30 },
 };

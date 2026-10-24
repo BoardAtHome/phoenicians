@@ -4,6 +4,7 @@ import { getProphecy } from './prophecy';
 import { shuffle, type Rng } from './rng';
 import type { GameState, Player, Result } from './state';
 import { fail, ok } from './state';
+import { continueResolution, pushEntry } from './reactions';
 import { checkActive, declareWinner } from './turn';
 import { getPlayer, log } from './util';
 
@@ -31,7 +32,7 @@ export function destroyStructure(state: GameState, ownerId: string, structureCar
   return ok;
 }
 
-/** Spends Warriors to destroy any opponent's structure. */
+/** Spends Warriors to destroy any opponent's structure. Others may answer with Attack Negation. */
 export function attack(state: GameState, attackerId: string, targetId: string, structureCardId: string, rng: Rng): Result {
   const check = checkActive(state, attackerId, 'action');
   if (!check.ok) return check;
@@ -41,13 +42,20 @@ export function attack(state: GameState, attackerId: string, targetId: string, s
   if (!target || target.eliminated) return fail('That player is not in the game');
   if (!target.structures.some((s) => s.id === structureCardId)) return fail('That structure does not exist');
   if (!canAfford(attacker.inventory, state.config.costs.attack)) return fail('Not enough resources to attack');
-
-  state.expeditionDiscard.push(...takeFromInventory(attacker.inventory, state.config.costs.attack));
-  log(state, 'attacked', attackerId, { targetId, structureCardId });
-  return destroyStructure(state, targetId, structureCardId, attackerId, rng);
+  startAttack(state, attackerId, targetId, structureCardId, rng);
+  return ok;
 }
 
-/** Spends Grain to draw a Curse. Counts toward The High Priest. */
+/** Pays for an attack and puts it on the stack. The structure is destroyed when the attack resolves. */
+export function startAttack(state: GameState, attackerId: string, targetId: string, structureCardId: string, rng: Rng, forced = false): void {
+  const attacker = getPlayer(state, attackerId)!;
+  state.expeditionDiscard.push(...takeFromInventory(attacker.inventory, state.config.costs.attack));
+  log(state, 'attacked', attackerId, { targetId, structureCardId, ...(forced ? { forced } : {}) });
+  pushEntry(state, { kind: 'attack', playerId: attackerId, targetId, structureCardId });
+  continueResolution(state, rng);
+}
+
+/** Spends Grain to draw a Curse. Counts toward The High Priest. Others may answer with Divine Interception. */
 export function performRitual(state: GameState, playerId: string, rng: Rng): Result {
   const check = checkActive(state, playerId, 'action');
   if (!check.ok) return check;
@@ -58,19 +66,14 @@ export function performRitual(state: GameState, playerId: string, rng: Rng): Res
   if (state.curseDeck.length === 0 && state.curseDiscard.length === 0) return fail('No curses are left to draw');
 
   state.expeditionDiscard.push(...takeFromInventory(player.inventory, state.config.costs.ritual));
-  if (state.curseDeck.length === 0) {
-    state.curseDeck = shuffle(rng, state.curseDiscard);
-    state.curseDiscard = [];
-    log(state, 'curseDeckReshuffled');
-  }
-  player.curseHand.push(state.curseDeck.pop()!);
-  player.counters.ritualsPerformed++;
   log(state, 'ritualPerformed', playerId);
+  pushEntry(state, { kind: 'ritual', playerId, interceptedBy: null });
+  continueResolution(state, rng);
   return ok;
 }
 
 /** Exchanges resources (Purple Dye by default) for a Divine Coin. */
-export function buyDivineCoin(state: GameState, playerId: string): Result {
+export function buyDivineCoin(state: GameState, playerId: string, rng: Rng): Result {
   const check = checkActive(state, playerId, 'action');
   if (!check.ok) return check;
   const player = getPlayer(state, playerId)!;
@@ -78,20 +81,26 @@ export function buyDivineCoin(state: GameState, playerId: string): Result {
   state.expeditionDiscard.push(...takeFromInventory(player.inventory, state.config.costs.divineCoin));
   player.divineCoins++;
   log(state, 'divineCoinBought', playerId);
+  pushEntry(state, { kind: 'moment', playerId, action: 'buyDivineCoin' });
+  continueResolution(state, rng);
   return ok;
 }
 
-/** Removes a player from the game. Their cards return to the shared piles. */
-export function eliminatePlayer(state: GameState, playerId: string, rng: Rng): void {
+/**
+ * Removes a player from the game. Their cards return to the shared piles.
+ * With Revival they come back at the start of their next turn, unless the game ends first.
+ */
+export function eliminatePlayer(state: GameState, playerId: string, rng: Rng, reviving = false): void {
   const player = getPlayer(state, playerId)!;
   player.eliminated = true;
+  player.reviving = reviving;
   state.buildingDeck.push(...player.structures.splice(0));
   shuffle(rng, state.buildingDeck);
   refillShop(state);
   for (const r of RESOURCES) state.expeditionDiscard.push(...player.inventory[r].splice(0));
   state.curseDiscard.push(...player.curseHand.splice(0));
   state.prophecyDiscard.push(player.prophecyId);
-  log(state, 'playerEliminated', playerId, { prophecyId: player.prophecyId });
+  log(state, 'playerEliminated', playerId, { prophecyId: player.prophecyId, ...(reviving ? { reviving } : {}) });
 
   const remaining = state.players.filter((p) => !p.eliminated);
   if (remaining.length === 1) declareWinner(state, remaining[0]!.id, 'lastPlayerStanding');
@@ -112,6 +121,9 @@ export function guessProphecy(state: GameState, guesserId: string, targetId: str
   guesser.divineCoins -= cost;
   const correct = target.prophecyId === prophecyId;
   log(state, 'prophecyGuessed', guesserId, { targetId, prophecyId, correct, name: getProphecy(state, prophecyId).name });
-  if (correct) eliminatePlayer(state, targetId, rng);
+  // The target may answer a correct guess with Revival.
+  if (correct) pushEntry(state, { kind: 'eliminate', playerId: guesserId, targetId, revived: false });
+  else pushEntry(state, { kind: 'moment', playerId: guesserId, action: 'guess' });
+  continueResolution(state, rng);
   return ok;
 }

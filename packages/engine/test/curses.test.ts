@@ -45,10 +45,10 @@ describe('playing Curses', () => {
     expect(state.log.at(-1)).toMatchObject({ type: 'cursePlayed', playerId: 'p0', data: { curseId: 'market-manipulation' } });
   });
 
-  it('is only allowed during your own action phase', () => {
+  it('outside a reaction window, is only allowed on your own turn', () => {
     expect(cast('mass-theft', {}, 'p1').ok).toBe(false);
     endActionPhase(state, 'p0');
-    expect(cast('mass-theft').ok).toBe(false);
+    expect(cast('mass-theft').ok).toBe(true);
   });
 
   it('refuses reactive Curses and cards not in hand', () => {
@@ -100,9 +100,9 @@ describe('Curse effects', () => {
     cast('divine-foresight');
     const seen = foresightCards(state);
     expect(seen.map((c) => (c.type === 'resource' ? c.resource : ''))).toEqual(['grain', 'warriors', 'purpleDye']);
-    expect(arrangeExpedition(state, 'p1', []).ok).toBe(false);
-    expect(arrangeExpedition(state, 'p0', [seen[0]!.id]).ok).toBe(false);
-    expect(arrangeExpedition(state, 'p0', [seen[2]!.id, seen[0]!.id, seen[1]!.id]).ok).toBe(true);
+    expect(arrangeExpedition(state, 'p1', [], rng()).ok).toBe(false);
+    expect(arrangeExpedition(state, 'p0', [seen[0]!.id], rng()).ok).toBe(false);
+    expect(arrangeExpedition(state, 'p0', [seen[2]!.id, seen[0]!.id, seen[1]!.id], rng()).ok).toBe(true);
     endActionPhase(state, 'p0');
     drawExpeditionCard(state, 'p0', r);
     expect(state.expedition!.drawn[0]!.resource).toBe('purpleDye');
@@ -113,11 +113,11 @@ describe('Curse effects', () => {
     endActionPhase(state, 'p0');
     stackDeck(state, [res('grain'), res('warriors')]);
     drawExpeditionCard(state, 'p0', r);
-    stopExpedition(state, 'p0');
+    stopExpedition(state, 'p0', rng());
     expect(state.turn.activePlayerId).toBe('p0');
     expect(state.expedition).toMatchObject({ playerId: 'p0', drawCount: 0 });
     drawExpeditionCard(state, 'p0', r);
-    stopExpedition(state, 'p0');
+    stopExpedition(state, 'p0', rng());
     expect(state.turn.activePlayerId).toBe('p1');
     expect(inventoryCounts(p0.inventory)).toMatchObject({ grain: 1, warriors: 1 });
   });
@@ -128,12 +128,12 @@ describe('Curse effects', () => {
     give(p1, 'buildingMaterials', 30);
     give(p1, 'warriors', 5);
     state.shop[0] = { id: 'x', structureId: 'archer-tower' };
-    expect(buildStructure(state, 'p1', 0)).toEqual({ ok: false, error: 'A Construction Ban stops you building this turn' });
+    expect(buildStructure(state, 'p1', 0, rng())).toEqual({ ok: false, error: 'A Construction Ban stops you building this turn' });
     passTurn(state);
     passTurn(state);
     passTurn(state);
     state.shop[0] = { id: 'y', structureId: 'archer-tower' };
-    expect(buildStructure(state, 'p1', 0).ok).toBe(true);
+    expect(buildStructure(state, 'p1', 0, rng()).ok).toBe(true);
   });
 
   it('Market Manipulation replaces the whole shop', () => {
@@ -191,7 +191,7 @@ describe('Curse effects', () => {
     cast('structural-burden', { playerId: 'p1' });
     expect(state.pendingChoice).toMatchObject({ kind: 'discardInventory', playerId: 'p1', count: 2 });
     const sel = { buildingMaterials: 0, warriors: 0, grain: 2, purpleDye: 0 };
-    expect(resolveDiscardChoice(state, 'p1', sel).ok).toBe(true);
+    expect(resolveDiscardChoice(state, 'p1', sel, rng()).ok).toBe(true);
     expect(p1.inventory.grain).toHaveLength(3);
     expect(state.turn).toMatchObject({ activePlayerId: 'p0', phase: 'action' }); // the caster's turn carries on
   });

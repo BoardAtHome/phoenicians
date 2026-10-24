@@ -83,6 +83,9 @@ export function validateConfig(config: GameConfig): string[] {
   }
 
   if (!(config.reactions.windowSeconds >= 0)) errors.push('reactions.windowSeconds must be ≥ 0');
+  if (config.reactions.holdSeconds !== undefined && !(config.reactions.holdSeconds >= 0)) {
+    errors.push('reactions.holdSeconds must be ≥ 0');
+  }
 
   return errors;
 }

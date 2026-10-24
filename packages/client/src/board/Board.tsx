@@ -13,6 +13,7 @@ import {
 import { HIDDEN, type PlayerViewState } from '@phoenicians/game';
 import { CATEGORY_LABEL, RESOURCE_LABEL, costText, describeEvent } from '../format';
 import { CurseHand, ForcedAttackDialog, ForesightDialog } from './Curses';
+import { ReactionBar } from './Reactions';
 
 type Props = BoardProps<PlayerViewState>;
 
@@ -59,13 +60,16 @@ export function Board({ G, moves, playerID, matchData }: Props) {
   const isConnected = (id: string) => matchData?.find((m) => String(m.id) === id)?.isConnected ?? false;
 
   const myTurn = !!me && G.turn.activePlayerId === me.id && G.turn.phase !== 'gameOver';
-  const canAct = myTurn && G.turn.phase === 'action' && !G.pendingChoice && !busy;
-  const exploring = myTurn && G.turn.phase === 'expedition' && !G.pendingChoice && !busy;
+  // Nothing waiting on reactions or on another player's choice.
+  const settled = !G.window && G.stack.length === 0 && !G.pendingChoice;
+  const canAct = myTurn && G.turn.phase === 'action' && settled && !busy;
+  const exploring = myTurn && G.turn.phase === 'expedition' && settled && !busy;
   const pending = G.pendingChoice;
   const winner = G.winnerId ? G.players.find((p) => p.id === G.winnerId) : null;
   const costs = G.config.costs;
   const noCardsLeft = G.counts.expeditionDeck === 0 && G.expeditionDiscard.length === 0;
-  const canStop = exploring && G.expedition && ((G.expedition.drawCount > 0 && G.expedition.lastDrawWasResource) || noCardsLeft);
+  const canStop =
+    exploring && G.expedition && ((G.expedition.drawCount > 0 && G.expedition.lastDrawWasResource && G.expedition.mustDraw === 0) || noCardsLeft);
 
   const prophecy = me && me.prophecyId !== HIDDEN ? G.config.prophecies.find((p) => p.id === me.prophecyId) : undefined;
 
@@ -75,7 +79,9 @@ export function Board({ G, moves, playerID, matchData }: Props) {
       ? `Waiting for ${G.players.find((p) => p.id === pending.playerId)?.name} to ${
           pending.kind === 'discardInventory' ? 'choose cards to discard' : pending.kind === 'arrangeExpedition' ? 'arrange the Expedition deck' : 'choose a structure to attack'
         }.`
-      : G.turn.phase === 'expedition'
+      : G.window
+        ? 'Waiting for reactions.'
+        : G.turn.phase === 'expedition'
         ? `${active.name} is on an expedition.`
         : `${active.name} is taking actions.`;
 
@@ -98,6 +104,8 @@ export function Board({ G, moves, playerID, matchData }: Props) {
           <p>{describeEvent(G, G.log[G.log.length - 1]!)}</p>
         </div>
       )}
+
+      {G.window && <ReactionBar key={G.window.id} G={G} me={me} send={send} moves={moves as never} busy={busy} />}
 
       {pending?.kind === 'arrangeExpedition' && pending.playerId === playerID && G.foresight.length > 0 && (
         <ForesightDialog key={G.foresight.map((c) => c.id).join()} G={G} send={send} busy={busy} />
@@ -172,6 +180,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
               <p className="muted small">
                 {G.expedition.drawCount} card{G.expedition.drawCount === 1 ? '' : 's'} drawn. The first card can't trigger a Calamity; later ones end the expedition.
               </p>
+              {G.expedition.mustDraw > 0 && <p className="hint">Forced Exploration: {G.expedition.mustDraw} more draw{G.expedition.mustDraw === 1 ? '' : 's'} before stopping.</p>}
               {G.expedition.playerId === playerID && (
                 <div className="row">
                   <button className="primary" disabled={!exploring || noCardsLeft} onClick={() => send('draw')}>Draw a card</button>
@@ -239,7 +248,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                 </button>
               </div>
 
-              <CurseHand G={G} me={me} canAct={canAct} send={send} />
+              <CurseHand G={G} me={me} canAct={canAct || !!exploring} send={send} />
             </section>
           )}
         </div>
@@ -252,7 +261,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
                   <span className={`dot ${isConnected(p.id) ? 'on' : ''}`} /> {p.name}
                 </h3>
                 <span className="small muted">
-                  {p.eliminated ? `Eliminated · ${G.config.prophecies.find((x) => x.id === p.prophecyId)?.name ?? ''}` : `${p.curseHand.length} curses · ${p.divineCoins} coins · ${inventorySize(p.inventory)} cards`}
+                  {p.eliminated ? `${p.reviving ? 'Returns next turn (Revival)' : 'Eliminated'} · ${G.config.prophecies.find((x) => x.id === p.prophecyId)?.name ?? ''}` : `${p.curseHand.length} curses · ${p.divineCoins} coins · ${inventorySize(p.inventory)} cards`}
                 </span>
               </div>
               <Resources player={p} />

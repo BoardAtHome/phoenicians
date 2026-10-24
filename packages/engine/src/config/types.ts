@@ -93,5 +93,7 @@ export interface GameConfig {
   reactions: {
     /** Seconds each reaction window stays open. */
     windowSeconds: number;
+    /** Longest a player may pause a window while choosing a response. Older configs may lack it (30). */
+    holdSeconds?: number;
   };
 }

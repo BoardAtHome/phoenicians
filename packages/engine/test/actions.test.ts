@@ -96,8 +96,8 @@ describe('performRitual', () => {
 describe('Divine Coins', () => {
   it('cost 5 Purple Dye each', () => {
     give(p0, 'purpleDye', 9);
-    expect(buyDivineCoin(state, 'p0').ok).toBe(true);
-    expect(buyDivineCoin(state, 'p0').ok).toBe(false);
+    expect(buyDivineCoin(state, 'p0', rng()).ok).toBe(true);
+    expect(buyDivineCoin(state, 'p0', rng()).ok).toBe(false);
     expect(p0.divineCoins).toBe(1);
     expect(p0.inventory.purpleDye).toHaveLength(4);
   });

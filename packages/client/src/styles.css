@@ -136,3 +136,7 @@ textarea.code { font: 12px/1.4 ui-monospace, Menlo, monospace; width: 100%; resi
 .foresight { display: flex; flex-direction: column; gap: 6px; padding-left: 20px; }
 .foresight li { display: flex; gap: 6px; align-items: center; }
 .res.calamity { color: var(--danger); }
+.reaction { margin-bottom: 16px; position: sticky; top: 8px; z-index: 2; }
+.reaction.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.reaction .countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
+.reaction .curse-form { margin-bottom: 8px; }

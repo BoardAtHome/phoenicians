@@ -1,7 +1,14 @@
-import { foresightCards, type ExpeditionCard, type GameState } from '@phoenicians/engine';
+import { foresightCards, type ExpeditionCard, type GameState, type ReactionWindow } from '@phoenicians/engine';
 
 /** What a client is allowed to know. Deck contents are replaced by counts. */
-export interface PlayerViewState extends GameState {
+/** Who may respond is hidden, since it hints at what others hold: each player only learns about themselves. */
+export interface WindowView extends ReactionWindow {
+  /** Players still deciding. */
+  waitingCount: number;
+}
+
+export interface PlayerViewState extends Omit<GameState, 'window'> {
+  window: WindowView | null;
   counts: { expeditionDeck: number; buildingDeck: number; curseDeck: number; prophecyDeck: number };
   /** Divine Foresight: the top Expedition cards, top first, shown only to the player arranging them. */
   foresight: ExpeditionCard[];
@@ -27,6 +34,12 @@ export function playerView(G: GameState, playerID: string | null | undefined): P
             prophecyId: p.eliminated || gameOver ? p.prophecyId : HIDDEN,
           },
     ),
+    window: G.window && {
+      ...G.window,
+      eligible: G.window.eligible.filter((id) => id === playerID),
+      passed: G.window.passed.filter((id) => id === playerID),
+      waitingCount: G.window.eligible.filter((id) => !G.window!.passed.includes(id)).length,
+    },
     expeditionDeck: [],
     buildingDeck: [],
     curseDeck: [],

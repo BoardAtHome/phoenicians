@@ -30,7 +30,7 @@ describe('delayed victory', () => {
     state.shop[0] = { id: 'shop-watchtower', structureId: 'watchtower' };
     give(p0, 'buildingMaterials', 7);
     give(p0, 'warriors', 3);
-    expect(buildStructure(state, 'p0', 0).ok).toBe(true);
+    expect(buildStructure(state, 'p0', 0, rng()).ok).toBe(true);
     expect(isProphecyMet(state, p0)).toBe(true);
     expect(state.winnerId).toBeNull(); // no instant win
 
