@@ -4,13 +4,9 @@ import { Client } from 'boardgame.io/react';
 import { SocketIO } from 'boardgame.io/multiplayer';
 import { Phoenicians, type SetupData } from '@phoenicians/game';
 import { getSeat, lobby, saveSeat, SERVER, type Seat } from '../api';
-import { Board } from '../board/Board';
 import { Table } from '../table/Table';
 
-const ClassicClient = Client({ game: Phoenicians, board: Board, multiplayer: SocketIO({ server: SERVER }), debug: false });
-const TableClient = Client({ game: Phoenicians, board: Table, multiplayer: SocketIO({ server: SERVER }), debug: false });
-// The table layout is opt-in with ?table=1 while it is being built.
-const GameClient = new URLSearchParams(window.location.search).has('table') ? TableClient : ClassicClient;
+const GameClient = Client({ game: Phoenicians, board: Table, multiplayer: SocketIO({ server: SERVER }), debug: false });
 
 export function MatchPage({ matchID }: { matchID: string }) {
   const [match, setMatch] = useState<LobbyAPI.Match | null>(null);
@@ -52,14 +48,16 @@ export function MatchPage({ matchID }: { matchID: string }) {
 
   if (seat) {
     return (
-      <>
-        <div className="sharebar">
-          <span className="muted">Invite link:</span> <code>{link}</code>
-          <button onClick={() => navigator.clipboard?.writeText(link).then(() => setCopied(true))}>{copied ? 'Copied' : 'Copy'}</button>
-          <button className="ghost" onClick={() => { saveSeat(matchID, null); setSeat(null); }}>Leave seat</button>
-        </div>
-        <GameClient matchID={matchID} playerID={seat.playerID} credentials={seat.credentials} />
-      </>
+      <GameClient
+        matchID={matchID}
+        playerID={seat.playerID}
+        credentials={seat.credentials}
+        inviteLink={link}
+        onLeave={() => {
+          saveSeat(matchID, null);
+          setSeat(null);
+        }}
+      />
     );
   }
 

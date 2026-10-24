@@ -8,16 +8,17 @@ import { CursePlaySheet, CursesSheet, DiscardSheet, ForcedAttackSheet, Foresight
 import { Dock } from './Dock';
 import { Icon } from './Icon';
 import { MarketSheet } from './Market';
+import { GameOverSheet, MenuSheet } from './Menu';
 import { Seat } from './Seat';
 import { Sheet } from './Sheet';
 import { lastIndex, seatColor, seating, useTurn } from './useTurn';
 import { VillageSheet } from './Village';
 import './table.css';
 
-type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | { kind: 'play'; cardId: string } | null;
+type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | { kind: 'play'; cardId: string } | { kind: 'menu' } | { kind: 'gameOver' } | null;
 
 /** The game laid out like a real table: rivals around the edge, the Expedition deck in the middle, your hand at the bottom. */
-export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewState>) {
+export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: BoardProps<PlayerViewState> & { inviteLink?: string; onLeave?: () => void }) {
   const turn = useTurn({ G, moves, playerID });
   const { me, active, send, busy, myTurn } = turn;
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -28,6 +29,9 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
     if (!turn.canAct && !busy) setAttacking(false);
   }, [turn.canAct, busy]);
   useEffect(() => setAttacking(false), [G.log.length]);
+  useEffect(() => {
+    if (G.turn.phase === 'gameOver') setOverlay({ kind: 'gameOver' });
+  }, [G.turn.phase]);
   // A reaction you can answer takes over the screen: close whatever sheet was open underneath.
   useEffect(() => {
     if (G.window && me && G.window.eligible.includes(me.id)) setOverlay(null);
@@ -72,6 +76,9 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
   return (
     <div className="table">
       <div className="table-top">
+        <button type="button" className="round-btn" onClick={() => setOverlay({ kind: 'menu' })} aria-label="Game menu">
+          <Icon name="menu" />
+        </button>
         <span className="turn-pill">
           <span className="dot on" style={{ background: seatColor(G, active.id) }} />
           {turnText}
@@ -141,6 +148,8 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
         />
       )}
       {overlay?.kind === 'guess' && <GuessSheet G={G} turn={turn} onClose={close} />}
+      {overlay?.kind === 'menu' && <MenuSheet G={G} inviteLink={inviteLink} onLeave={onLeave} onLog={() => setOverlay({ kind: 'log' })} onClose={close} />}
+      {overlay?.kind === 'gameOver' && <GameOverSheet G={G} onClose={close} />}
       {overlay?.kind === 'curses' && <CursesSheet G={G} turn={turn} onClose={close} onPlay={(card) => setOverlay({ kind: 'play', cardId: card.id })} />}
       {overlay?.kind === 'play' && me && playing && (
         <CursePlaySheet

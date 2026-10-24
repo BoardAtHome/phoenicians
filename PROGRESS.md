@@ -18,7 +18,6 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 Redesign of the game screen from the co-creator's mobile mockup. Plan: https://claude.ai/artifact/9gEguFXddeLm5B4S5641dK
 Jamil's direction: the mockup is inspiration for the layout only. Our established rules win every conflict,
 keep the current look (colors, fonts, panels), and take liberties where the mockup doesn't cover something.
-The new screen is opt-in with `?table=1` on a match URL until step 4 makes it the default.
 
 - [x] Step 1: player count 3–6 (baseline config, Home page reads it); table shell in `client/src/table/`:
       seats around the table (next player on your left, then across the top, then right), Expedition deck
@@ -32,8 +31,12 @@ The new screen is opt-in with `?table=1` on a match URL until step 4 makes it th
       everyone else; timer from config, pause while choosing, Pass / Not now), Divine Foresight, discard and
       Forced Conflict sheets. The ticker and reaction banner sit at the top of the dock so they stay in view.
       `describeEntry` takes the viewer's id ("Sara is attacking your Farm").
-- [ ] Step 4: game menu (invite, leave seat, versions), game-over card, desktop polish, table becomes default,
-      classic board removed, browser check at 3/5/6 players on phone and desktop
+- [x] Step 4: game menu (invite link, leave seat, activity log, versions), game-over card revealing every
+      Prophecy, compact seats for 5–6 players, desktop widening. The table is the only game screen: the classic
+      board (`client/src/board/`) and its CSS are gone; `useCountdown` lives in `table/countdown.ts`.
+      Browser-checked at 3, 5 and 6 players on phone and desktop, plus scripted games covering build,
+      expedition, attack, Curses with targets, reaction prompts, discards and admin end-match. Version 0.7.0.
+- [ ] PR review and merge
 
 ## After milestone 7
 

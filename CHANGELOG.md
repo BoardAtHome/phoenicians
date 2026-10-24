@@ -3,6 +3,26 @@
 App builds. Rule and balance changes made through the admin page are versioned
 separately and shown on the in-app Changelog page.
 
+## 0.7.0 — Table layout
+
+- New game screen laid out like a real table: rivals sit around the edge in turn
+  order (the next player on your left), the Expedition deck is in the middle, and
+  your hand is docked at the bottom. Works on phones and widens on desktop.
+- Your dock: secret Prophecy (tap to peek, hides when you leave the page, glows
+  while it is met), resource tiles, your village, Curses and Divine Coins, and the
+  main buttons for the moment (Actions / Set out, Keep / Draw a card).
+- Market, villages, actions, Guess a Prophecy, Curses and the activity log open as
+  sheets. The Market shows what you're missing for each building. Attack by tapping
+  a rival's seat and picking a structure.
+- Reaction windows: a prompt when the action is aimed at you, a banner when you can
+  answer someone else's action, and a countdown for everyone else. Timer, pause and
+  pass work as before.
+- Picking targets for Curses uses player, resource and structure buttons instead of
+  dropdowns. Discards use + and − steppers.
+- Game menu with the invite link, leave seat and version info; a game-over card
+  reveals every Prophecy.
+- Games now take 3 to 6 players.
+
 ## 0.6.0 — Playtest tools
 
 - Admin page in three tabs: Config, Versions, and Matches and stats.

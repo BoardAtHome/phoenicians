@@ -15,7 +15,7 @@ import {
   type StackEntry,
 } from '@phoenicians/engine';
 import type { PlayerViewState } from '@phoenicians/game';
-import { useCountdown } from '../board/Reactions';
+import { useCountdown } from './countdown';
 import { CATEGORY_LABEL, RESOURCE_LABEL, describeEntry } from '../format';
 import { Icon } from './Icon';
 import { Avatar } from './Seat';

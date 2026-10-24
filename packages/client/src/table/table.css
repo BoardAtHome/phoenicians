@@ -72,8 +72,6 @@
 .alert.win { border-color: var(--accent); }
 
 .ticker { width: 100%; padding: 7px 14px; border-radius: 999px !important; background: var(--panel); font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.table .reaction { margin: 0; }
-.table .dialog { margin: 0; }
 
 .dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px 16px 0 0; box-shadow: 0 -4px 14px var(--shade); }
 .prophecy-bar { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px dashed var(--accent); background: var(--bg); padding: 8px 12px; position: relative; overflow: hidden; }
@@ -192,3 +190,17 @@ button.curse-response:hover:not(:disabled) .curse-card { background: var(--panel
 .pick.res-pick.bg-warriors { background: var(--res-warriors); }
 .pick.res-pick.bg-grain { background: var(--res-grain); }
 .pick.res-pick.bg-purpleDye { background: var(--res-purpleDye); }
+/* Compact seats across the top (5 or 6 players): counts in one line to save height. */
+.seat-row .seat-card.narrow .counts { display: flex; justify-content: center; gap: 2px 6px; }
+.seat-row .seat-card.narrow .seat-head { flex-direction: row; justify-content: center; }
+.seat-row .seat-card.narrow .seat-name { width: auto; flex: 0 1 auto; }
+.seat-row .seat-card.narrow .seat-meta { width: 100%; justify-content: center; }
+.seat-row .seat-card.narrow .seat-head { flex-wrap: wrap; }
+.side .seat-card { max-width: 200px; margin: 0 auto; width: 100%; }
+@media (max-width: 480px) { .middle { min-height: 170px; } }
+.seat-row .seat-card.narrow { padding: 6px 4px; gap: 4px; }
+.seat-row .seat-card.narrow .counts { flex-wrap: nowrap; gap: 4px; font-size: 11.5px; }
+.seat-row .seat-card.narrow .count { gap: 2px; }
+.seat-row .seat-card.narrow .chip { width: 14px; height: 14px; }
+.seat-row .seat-card.narrow .chip .icon { width: 10px; height: 10px; }
+.seat-row .seat-card { width: 100%; }
