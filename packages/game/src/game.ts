@@ -26,13 +26,20 @@ export interface SetupData {
   names: string[];
   /** playerID of the first player (the youngest). */
   firstPlayer: string;
-  /** Config version id to play with; the server resolves it. */
-  configVersion?: string;
+  /** Issued to the admin to start a match on the unpublished draft config. */
+  draftToken?: string;
+}
+
+export interface ResolvedConfig {
+  config: GameConfig;
+  /** e.g. "v3" or "draft (based on v3)". */
+  configVersion: string;
+  build: string;
 }
 
 export interface PhoeniciansOptions {
   /** Looks up the config for a match. Runs on the server only. */
-  resolveConfig?: (setupData: SetupData | undefined) => GameConfig;
+  resolveConfig?: (setupData: SetupData | undefined) => ResolvedConfig;
 }
 
 const toResult = (result: Result) => (result.ok ? undefined : INVALID_MOVE);
@@ -44,7 +51,8 @@ const rngFrom = (random: { Number: () => number }): Rng => ({ next: () => random
  * decides whether they are legal, which leaves room for out-of-turn curses.
  */
 export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameState, Record<string, unknown>, SetupData> {
-  const resolveConfig = options.resolveConfig ?? (() => baselineConfig);
+  const resolveConfig =
+    options.resolveConfig ?? ((): ResolvedConfig => ({ config: baselineConfig, configVersion: 'baseline', build: 'dev' }));
   return {
     name: 'phoenicians',
     minPlayers: baselineConfig.players.min,
@@ -60,8 +68,10 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
     setup({ ctx, random }, setupData) {
       const names = setupData?.names ?? ctx.playOrder.map((id) => `Player ${Number(id) + 1}`);
       const seats = ctx.playOrder.map((id, i) => ({ id, name: names[i] ?? `Player ${i + 1}` }));
-      const config = structuredClone(resolveConfig(setupData));
-      return setupGame(config, seats, setupData?.firstPlayer ?? '0', rngFrom(random));
+      const resolved = resolveConfig(setupData);
+      const G = setupGame(structuredClone(resolved.config), seats, setupData?.firstPlayer ?? '0', rngFrom(random));
+      G.meta = { configVersion: resolved.configVersion, build: resolved.build };
+      return G;
     },
 
     turn: { activePlayers: ActivePlayers.ALL },

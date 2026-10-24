@@ -19,9 +19,10 @@ describe('Phoenicians game', () => {
   it('uses the config the server resolves', () => {
     const config = structuredClone(baselineConfig);
     config.shop.slots = 4;
-    const client = Client({ game: createPhoenicians({ resolveConfig: () => config }), numPlayers: 3 });
+    const client = Client({ game: createPhoenicians({ resolveConfig: () => ({ config, configVersion: 'v9', build: 'test' }) }), numPlayers: 3 });
     client.start();
     expect(state(client).shop).toHaveLength(4);
+    expect(state(client).meta).toEqual({ configVersion: 'v9', build: 'test' });
   });
 
   it('runs a turn through moves and rejects illegal ones', () => {

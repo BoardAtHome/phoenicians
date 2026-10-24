@@ -12,7 +12,8 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 
 - [x] `packages/game`: boardgame.io wrapper. All players may send moves; the engine decides legality.
       `playerView` hides others' curses and Prophecies and all deck order.
-- [ ] `packages/server`: boardgame.io server, config store (draft, versions, rollback), admin password
+- [x] `packages/server`: boardgame.io server, config store (draft, versions, rollback), admin password.
+      Env: PORT, ADMIN_PASSWORD, DATABASE_URL (Postgres; in-memory if unset), BUILD_VERSION.
 - [ ] `packages/client`: Vite + React lobby, match links, board
 - [ ] Admin page: JSON config editor, publish versions
 - [ ] Deploy setup (Render)
