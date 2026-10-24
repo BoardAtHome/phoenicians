@@ -80,3 +80,15 @@ describe('reaction window visibility', () => {
     expect(playerView(raw, '0').window).toMatchObject({ eligible: [], passed: [], waitingCount: 1 });
   });
 });
+
+describe('playtest records', () => {
+  it('keeps private log events from players until the game ends', async () => {
+    const { playerView } = await import('../src');
+    const raw = createPhoenicians().setup!({ ctx: { playOrder: ['0', '1', '2'], numPlayers: 3 }, random: { Number: Math.random } } as never);
+    expect(raw.log.some((e) => e.private)).toBe(true);
+    expect(raw.log.every((e) => typeof e.at === 'number')).toBe(true);
+    expect(playerView(raw, '0').log.some((e) => e.private)).toBe(false);
+    raw.turn.phase = 'gameOver';
+    expect(playerView(raw, '0').log.some((e) => e.private)).toBe(true);
+  });
+});
