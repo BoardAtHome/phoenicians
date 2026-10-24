@@ -33,7 +33,7 @@ export function CurseHand({ G, me, canAct, send }: { G: PlayerViewState; me: Pla
               <div className="card-title">{curse.name} <span className="stars">{'★'.repeat(curse.stars)}</span></div>
               <div className="small">{curse.text}</div>
               {reactive ? (
-                <span className="muted small">Played in response to others (coming in the next update)</span>
+                <span className="muted small">You'll be offered this when it applies.</span>
               ) : (
                 <button disabled={!canAct} onClick={() => setSelected(selected === c.id ? null : c.id)}>
                   {selected === c.id ? 'Cancel' : 'Play'}
@@ -50,7 +50,7 @@ export function CurseHand({ G, me, canAct, send }: { G: PlayerViewState; me: Pla
   );
 }
 
-function CurseForm({ G, me, card, onPlay }: { G: PlayerViewState; me: Player; card: CurseCard; onPlay: (t: CurseTarget) => void }) {
+export function CurseForm({ G, me, card, onPlay }: { G: PlayerViewState; me: Player; card: CurseCard; onPlay: (t: CurseTarget) => void }) {
   const fields = CURSE_TARGETS[card.curseId] ?? [];
   const curse = G.config.curses.find((c) => c.id === card.curseId)!;
   const [target, setTarget] = useState<CurseTarget>({});

@@ -96,6 +96,8 @@ export interface ReactionWindow {
   passed: string[];
   /** Server time (ms) when the window may be closed. Null until the server stamps it. */
   deadline: number | null;
+  /** Server time the deadline was last set, so clients can show the countdown without trusting their own clock. */
+  updatedAt: number | null;
   /** A player choosing targets for a response; the countdown is paused meanwhile. */
   heldBy: string | null;
   /** Milliseconds left on the countdown while held. */

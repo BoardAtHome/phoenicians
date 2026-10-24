@@ -64,7 +64,7 @@ function openWindow(state: GameState, entry: StackEntry): boolean {
     .filter((p) => p.curseHand.some((c) => canRespondWith(state, p.id, c.curseId, entry)))
     .map((p) => p.id);
   if (eligible.length === 0) return false;
-  state.window = { id: state.nextWindowId++, entryId: entry.id, eligible, passed: [], deadline: null, heldBy: null, remainingMs: 0 };
+  state.window = { id: state.nextWindowId++, entryId: entry.id, eligible, passed: [], deadline: null, updatedAt: null, heldBy: null, remainingMs: 0 };
   return true;
 }
 
@@ -152,7 +152,10 @@ function closeCurrentWindow(state: GameState, rng: Rng): void {
 
 /** Sets the countdown of a newly opened window. The server calls this after every move. */
 export function stampWindow(state: GameState, now: number): void {
-  if (state.window && state.window.deadline === null) state.window.deadline = now + state.config.reactions.windowSeconds * 1000;
+  if (state.window && state.window.deadline === null) {
+    state.window.deadline = now + state.config.reactions.windowSeconds * 1000;
+    state.window.updatedAt = now;
+  }
 }
 
 /** A player declines to respond. The window closes early once every eligible player has passed. */
@@ -179,6 +182,7 @@ export function holdWindow(state: GameState, playerId: string, windowId: number,
   window.heldBy = playerId;
   window.remainingMs = window.deadline! - now;
   window.deadline = now + (state.config.reactions.holdSeconds ?? 30) * 1000;
+  window.updatedAt = now;
   return ok;
 }
 
@@ -190,6 +194,7 @@ export function releaseWindow(state: GameState, playerId: string, windowId: numb
   if (window.heldBy !== playerId) return fail('You are not holding this window');
   window.heldBy = null;
   window.deadline = now + Math.max(window.remainingMs, 1000);
+  window.updatedAt = now;
   window.remainingMs = 0;
   return ok;
 }
