@@ -25,7 +25,7 @@ beforeEach(() => {
 
 describe('expedition basics', () => {
   it('requires at least one draw before stopping', () => {
-    expect(stopExpedition(state, 'p0')).toEqual({ ok: false, error: 'You must draw at least one card' });
+    expect(stopExpedition(state, 'p0', rng())).toEqual({ ok: false, error: 'You must draw at least one card' });
   });
 
   it('keeps drawn cards apart from inventory until the expedition ends', () => {
@@ -34,14 +34,14 @@ describe('expedition basics', () => {
     draw();
     expect(state.expedition!.drawn).toHaveLength(2);
     expect(inventorySize(p0.inventory)).toBe(0);
-    expect(stopExpedition(state, 'p0').ok).toBe(true);
+    expect(stopExpedition(state, 'p0', rng()).ok).toBe(true);
     expect(inventoryCounts(p0.inventory)).toEqual(sel(0, 1, 1, 0));
   });
 
   it('ends the turn when the expedition stops, so new cards cannot be spent this turn', () => {
     stackDeck(state, [res('grain')]);
     draw();
-    stopExpedition(state, 'p0');
+    stopExpedition(state, 'p0', rng());
     expect(state.turn).toMatchObject({ activePlayerId: 'p1', phase: 'action', number: 2 });
     expect(state.expedition).toBeNull();
   });
@@ -50,7 +50,7 @@ describe('expedition basics', () => {
     expect(drawExpeditionCard(state, 'p1', r).ok).toBe(false);
     stackDeck(state, [res('grain')]);
     draw();
-    stopExpedition(state, 'p0');
+    stopExpedition(state, 'p0', rng());
     expect(draw().ok).toBe(false);
   });
 
@@ -66,7 +66,7 @@ describe('expedition basics', () => {
     state.expeditionDeck = [];
     state.expeditionDiscard = [];
     expect(draw().ok).toBe(false);
-    expect(stopExpedition(state, 'p0').ok).toBe(true);
+    expect(stopExpedition(state, 'p0', rng()).ok).toBe(true);
   });
 });
 
@@ -84,7 +84,7 @@ describe('first-card Calamity', () => {
   it('cannot be followed by a voluntary stop', () => {
     stackDeck(state, [cal('discard-half')]);
     draw();
-    expect(stopExpedition(state, 'p0').ok).toBe(false);
+    expect(stopExpedition(state, 'p0', rng()).ok).toBe(false);
   });
 
   it('respects the configured number of ignored draws', () => {
@@ -146,8 +146,8 @@ describe('later Calamities', () => {
     expect(state.pendingChoice).toMatchObject({ kind: 'discardInventory', playerId: 'p0', count });
     expect(state.turn.activePlayerId).toBe('p0');
 
-    expect(resolveDiscardChoice(state, 'p0', sel(0, 0, 0, count)).ok).toBe(false); // drawn Purple Dye isn't in inventory yet
-    expect(resolveDiscardChoice(state, 'p0', sel(2, 0, count - 2, 0)).ok).toBe(true);
+    expect(resolveDiscardChoice(state, 'p0', sel(0, 0, 0, count), rng()).ok).toBe(false); // drawn Purple Dye isn't in inventory yet
+    expect(resolveDiscardChoice(state, 'p0', sel(2, 0, count - 2, 0), rng()).ok).toBe(true);
     expect(inventoryCounts(p0.inventory)).toEqual(sel(2, 0, 6 - count, 1));
     expect(state.pendingChoice).toBeNull();
     expect(state.turn.activePlayerId).toBe('p1');
@@ -164,7 +164,7 @@ describe('later Calamities', () => {
     give(p0, 'warriors', 5);
     afterOneResource('discard-half');
     expect(state.pendingChoice).toMatchObject({ count: 3 });
-    resolveDiscardChoice(state, 'p0', sel(0, 3, 0, 0));
+    resolveDiscardChoice(state, 'p0', sel(0, 3, 0, 0), rng());
     expect(inventoryCounts(p0.inventory)).toEqual(sel(0, 2, 0, 1));
   });
 
@@ -185,9 +185,9 @@ describe('later Calamities', () => {
     give(p0, 'grain', 8);
     afterOneResource('discard-4');
     expect(draw().ok).toBe(false);
-    expect(stopExpedition(state, 'p0').ok).toBe(false);
-    expect(resolveDiscardChoice(state, 'p1', sel(0, 0, 4, 0)).ok).toBe(false);
-    expect(resolveDiscardChoice(state, 'p0', sel(0, 0, 3, 0)).ok).toBe(false);
+    expect(stopExpedition(state, 'p0', rng()).ok).toBe(false);
+    expect(resolveDiscardChoice(state, 'p1', sel(0, 0, 4, 0), rng()).ok).toBe(false);
+    expect(resolveDiscardChoice(state, 'p0', sel(0, 0, 3, 0), rng()).ok).toBe(false);
   });
 });
 
@@ -196,7 +196,7 @@ describe('turn order', () => {
     state.players[1]!.eliminated = true;
     stackDeck(state, [res('grain')]);
     draw();
-    stopExpedition(state, 'p0');
+    stopExpedition(state, 'p0', rng());
     expect(active(state).id).toBe('p2');
   });
 });

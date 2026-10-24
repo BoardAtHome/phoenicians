@@ -1,10 +1,12 @@
 import { canAfford, takeFromInventory } from './inventory';
+import { continueResolution, pushEntry } from './reactions';
+import type { Rng } from './rng';
 import type { GameState, Result } from './state';
 import { fail, ok } from './state';
 import { checkActive, getPlayer, log } from './turn';
 
 /** Buys the building in a shop slot, then refills the slot from the building deck. */
-export function buildStructure(state: GameState, playerId: string, slot: number): Result {
+export function buildStructure(state: GameState, playerId: string, slot: number, rng: Rng): Result {
   const check = checkActive(state, playerId, 'action');
   if (!check.ok) return check;
   if (getPlayer(state, playerId)!.constructionBanned) return fail('A Construction Ban stops you building this turn');
@@ -18,5 +20,7 @@ export function buildStructure(state: GameState, playerId: string, slot: number)
   player.structures.push(card);
   state.shop[slot] = state.buildingDeck.pop() ?? null;
   log(state, 'structureBuilt', playerId, { structureId: structure.id, slot });
+  pushEntry(state, { kind: 'moment', playerId, action: 'build' });
+  continueResolution(state, rng);
   return ok;
 }

@@ -6,6 +6,7 @@ export { createRng, shuffle, type Rng } from './rng';
 export { setupGame, SetupError, type Seat } from './setup';
 export { canAfford, inventoryCounts, inventorySize } from './inventory';
 export { endActionPhase, getPlayer } from './turn';
+export { canPlayInWindow, canRespondWith, closeWindow, holdWindow, passWindow, releaseWindow, stampWindow, topEntry } from './reactions';
 export { drawExpeditionCard, stopExpedition, resolveDiscardChoice } from './expedition';
 export { buildStructure } from './build';
 export { attack, buyDivineCoin, destroyStructure, eliminatePlayer, guessProphecy, performRitual, refillShop } from './actions';
@@ -16,6 +17,7 @@ export {
   CURSE_TARGETS,
   foresightCards,
   playCurse,
+  prepareCurse,
   REACTIVE_CURSES,
   resolveForcedAttack,
   sabotageCount,

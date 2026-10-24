@@ -1,25 +1,15 @@
-import { RESOURCES, type Resource } from './config/types';
-import { destroyStructure, refillShop } from './actions';
+import { RESOURCES } from './config/types';
+import { destroyStructure, refillShop, startAttack } from './actions';
 import { addToInventory, canAfford, inventorySize, takeFromInventory } from './inventory';
 import { replaceProphecy } from './prophecy';
+import { finishExpedition } from './expedition';
 import { shuffle, type Rng } from './rng';
-import type { GameState, Player, ResourceCard, Result } from './state';
+import { canPlayInWindow, continueResolution, pushEntry, topEntry } from './reactions';
+import type { CurseTargetInput, GameState, Player, ResourceCard, Result, StackEntry } from './state';
 import { fail, ok } from './state';
-import { checkActive } from './turn';
 import { getPlayer, log } from './util';
 
-/** What a player supplies when playing a Curse. Which fields matter depends on the Curse. */
-export interface CurseTarget {
-  playerId?: string;
-  /** Forced Conflict: the player whose structure gets attacked. */
-  secondPlayerId?: string;
-  resource?: Resource;
-  /** Resource Exchange: what you give from inventory and what you take from the discard pile. */
-  give?: Resource;
-  take?: Resource;
-  /** Military Sabotage: which of the target's structures to destroy. */
-  structureCardIds?: string[];
-}
+export type CurseTarget = CurseTargetInput;
 
 export type TargetField = 'opponent' | 'player' | 'secondPlayer' | 'resource' | 'exchange' | 'structures';
 
@@ -77,34 +67,39 @@ export const burdenCount = (state: GameState, target: Player): number => {
   return target.structures.length * per;
 };
 
-/** Plays a Curse from the player's hand during their own action phase. Played Curses are public. */
-export function playCurse(state: GameState, playerId: string, curseCardId: string, target: CurseTarget, rng: Rng): Result {
-  const check = checkActive(state, playerId, 'action');
-  if (!check.ok) return check;
+type Prepared = { apply: () => void; affects: string[] } | { error: string };
+const no = (error: string): Prepared => ({ error });
+
+/**
+ * Checks a Curse can take effect and returns how to apply it. Run once when it is played and again
+ * when it resolves, since other responses may have changed things in between (then it fizzles).
+ * `entryId` is the stack entry a reactive Curse answers.
+ */
+export function prepareCurse(state: GameState, playerId: string, curseId: string, target: CurseTarget, entryId: number | null, rng: Rng): Prepared {
   const player = getPlayer(state, playerId)!;
-  const card = player.curseHand.find((c) => c.id === curseCardId);
-  if (!card) return fail('That Curse is not in your hand');
-  if (REACTIVE_CURSES.has(card.curseId)) return fail('This Curse is played in response to another action');
-  const curse = state.config.curses.find((c) => c.id === card.curseId)!;
+  const curse = state.config.curses.find((c) => c.id === curseId);
+  if (!curse) return no('Unknown Curse');
   const params = curse.params;
+  if (REACTIVE_CURSES.has(curseId)) return prepareResponse(state, player, curseId, entryId, params, rng);
 
   const fields = CURSE_TARGETS[curse.id] ?? [];
   const targetPlayer = target.playerId ? getPlayer(state, target.playerId) : undefined;
   if (fields.includes('opponent') || fields.includes('player')) {
-    if (!targetPlayer || targetPlayer.eliminated) return fail('Choose a player still in the game');
-    if (fields.includes('opponent') && targetPlayer.id === playerId) return fail('Choose an opponent');
+    if (!targetPlayer || targetPlayer.eliminated) return no('Choose a player still in the game');
+    if (fields.includes('opponent') && targetPlayer.id === playerId) return no('Choose an opponent');
   }
+  const against = (...ids: (string | undefined)[]) => ids.filter((id): id is string => !!id && id !== playerId);
+  let affects = against(targetPlayer?.id);
 
-  // Validate first, then apply, so a failed play changes nothing.
   let apply: () => void;
   switch (curse.id) {
     case 'resource-exchange': {
       const { give, take } = target;
       const count = params.exchange ?? 1;
-      if (!give || !take) return fail('Choose what to give and what to take');
-      if (player.inventory[give].length < count) return fail(`You need ${count} ${give} to give`);
+      if (!give || !take) return no('Choose what to give and what to take');
+      if (player.inventory[give].length < count) return no(`You need ${count} ${give} to give`);
       const available = state.expeditionDiscard.filter((c): c is ResourceCard => c.type === 'resource' && c.resource === take);
-      if (available.length < count) return fail(`The discard pile has no ${take} to take`);
+      if (available.length < count) return no(`The discard pile has no ${take} to take`);
       apply = () => {
         state.expeditionDiscard.push(...player.inventory[give].splice(-count));
         for (const c of available.slice(-count)) state.expeditionDiscard.splice(state.expeditionDiscard.indexOf(c), 1);
@@ -116,6 +111,7 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
       apply = () => void stealRandom(targetPlayer!, player, params.steal ?? 2, rng);
       break;
     case 'mass-theft':
+      affects = against(...state.players.filter((p) => !p.eliminated).map((p) => p.id));
       apply = () => {
         for (const other of state.players) {
           if (other.id !== playerId && !other.eliminated) stealRandom(other, player, params.stealPerOpponent ?? 1, rng);
@@ -124,7 +120,7 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
       break;
     case 'divine-foresight': {
       const count = Math.min(params.view ?? 3, state.expeditionDeck.length);
-      if (count === 0) return fail('The Expedition deck is empty');
+      if (count === 0) return no('The Expedition deck is empty');
       apply = () => {
         state.pendingChoice = { kind: 'arrangeExpedition', playerId, count };
       };
@@ -132,7 +128,9 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
     }
     case 'extra-expedition':
       apply = () => {
-        state.turn.extraExpeditions++;
+        // Played outside your own turn, the expedition runs as soon as the current turn ends.
+        if (state.turn.activePlayerId === playerId) state.turn.extraExpeditions++;
+        else state.extraExpeditionQueue.push(playerId);
       };
       break;
     case 'construction-ban':
@@ -153,7 +151,8 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
       break;
     case 'forced-conflict': {
       const victim = target.secondPlayerId ? getPlayer(state, target.secondPlayerId) : undefined;
-      if (!victim || victim.eliminated || victim.id === targetPlayer!.id) return fail('Choose a second player to be attacked');
+      if (!victim || victim.eliminated || victim.id === targetPlayer!.id) return no('Choose a second player to be attacked');
+      affects = against(targetPlayer!.id, victim.id);
       apply = () => {
         // Nothing happens if Player A cannot afford an attack or Player B has nothing to attack.
         if (canAfford(targetPlayer!.inventory, state.config.costs.attack) && victim.structures.length > 0) {
@@ -164,7 +163,7 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
     }
     case 'resource-purge': {
       const resource = target.resource;
-      if (!resource || !RESOURCES.includes(resource)) return fail('Choose a resource');
+      if (!resource || !RESOURCES.includes(resource)) return no('Choose a resource');
       apply = () => {
         state.expeditionDiscard.push(...targetPlayer!.inventory[resource].splice(0));
       };
@@ -174,7 +173,7 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
       const count = sabotageCount(state, targetPlayer!);
       const chosen = target.structureCardIds ?? [];
       if (new Set(chosen).size !== count || !chosen.every((id) => targetPlayer!.structures.some((s) => s.id === id))) {
-        return fail(`Choose exactly ${count} of their structures`);
+        return no(`Choose exactly ${count} of their structures`);
       }
       apply = () => {
         for (const id of chosen) destroyStructure(state, targetPlayer!.id, id, playerId, rng);
@@ -194,22 +193,126 @@ export function playCurse(state: GameState, playerId: string, curseCardId: strin
       break;
     }
     case 'prophecy-disruption':
-      if (state.prophecyDeck.length === 0 && state.prophecyDiscard.length === 0) return fail('No Prophecy cards are left to draw');
+      if (state.prophecyDeck.length === 0 && state.prophecyDiscard.length === 0) return no('No Prophecy cards are left to draw');
       apply = () => void replaceProphecy(state, targetPlayer!.id, rng);
       break;
     default:
-      return fail('This Curse cannot be played yet');
+      return no('This Curse cannot be played yet');
   }
+
+  return { apply, affects };
+}
+
+function prepareResponse(
+  state: GameState,
+  player: Player,
+  curseId: string,
+  entryId: number | null,
+  params: Record<string, number>,
+  rng: Rng,
+): Prepared {
+  const entry = state.stack.find((e) => e.id === entryId);
+  if (!entry) return no('There is nothing to respond to');
+  const expedition = state.expedition;
+  const explorerId = entry.playerId;
+  const cancel = (e: StackEntry) => () => {
+    e.canceled = true;
+  };
+  switch (curseId) {
+    case 'attack-negation':
+      if (entry.kind !== 'attack') return no('Not an attack');
+      return { affects: [entry.playerId], apply: cancel(entry) };
+    case 'curse-negation':
+      if (entry.kind !== 'curse' || !entry.affects.includes(player.id)) return no('Not a Curse played against you');
+      return { affects: [entry.playerId], apply: cancel(entry) };
+    case 'divine-interception':
+      if (entry.kind !== 'ritual') return no('Not a ritual');
+      return {
+        affects: [entry.playerId],
+        apply: () => {
+          entry.interceptedBy = player.id;
+        },
+      };
+    case 'calamity-protection':
+      if (entry.kind !== 'calamity' || entry.playerId !== player.id) return no('Not a Calamity you drew');
+      return { affects: [], apply: cancel(entry) };
+    case 'revival':
+      if (entry.kind !== 'eliminate' || entry.targetId !== player.id) return no('You are not being eliminated');
+      return {
+        affects: [],
+        apply: () => {
+          entry.revived = true;
+        },
+      };
+    case 'expedition-interruption':
+    case 'expedition-theft':
+    case 'forced-exploration': {
+      if (entry.kind !== 'moment' || entry.action !== 'draw' || expedition?.playerId !== explorerId) return no('That expedition is over');
+      const exp = expedition!;
+      if (curseId === 'expedition-theft' && exp.drawn.length === 0) return no('Nothing has been collected yet');
+      const apply =
+        curseId === 'expedition-interruption'
+          ? () => finishExpedition(state, rng)
+          : curseId === 'expedition-theft'
+            ? () => {
+                const stolen = exp.drawn.splice(0);
+                addToInventory(player.inventory, stolen);
+                log(state, 'expeditionStolen', player.id, { from: explorerId, count: stolen.length });
+              }
+            : () => {
+                exp.mustDraw += params.extraDraws ?? 3;
+              };
+      return { affects: [explorerId], apply };
+    }
+    default:
+      return no('This Curse cannot be played yet');
+  }
+}
+
+/**
+ * Plays a Curse from the player's hand: on your own turn with nothing pending, or as a response
+ * while a reaction window is open. Played Curses are public and go on the stack.
+ */
+export function playCurse(state: GameState, playerId: string, curseCardId: string, target: CurseTarget, rng: Rng): Result {
+  if (state.turn.phase === 'gameOver') return fail('The game is over');
+  if (state.pendingChoice) return fail('Waiting for a choice to be made');
+  const player = getPlayer(state, playerId)!;
+  const card = player.curseHand.find((c) => c.id === curseCardId);
+  if (!card) return fail('That Curse is not in your hand');
+  const reactive = REACTIVE_CURSES.has(card.curseId);
+
+  let entryId: number | null = null;
+  if (state.window) {
+    if (!canPlayInWindow(state, playerId, card.curseId)) return fail('You cannot play this Curse now');
+    if (reactive) entryId = state.window.entryId;
+  } else {
+    if (state.turn.activePlayerId !== playerId) return fail('Outside your turn, Curses are played in a reaction window');
+    if (state.stack.length > 0) return fail('Waiting for actions to resolve');
+    if (reactive) return fail('This Curse is played in response to another action');
+  }
+
+  const prepared = prepareCurse(state, playerId, card.curseId, target, entryId, rng);
+  if ('error' in prepared) return fail(prepared.error);
 
   player.curseHand.splice(player.curseHand.indexOf(card), 1);
   state.curseDiscard.push(card);
-  log(state, 'cursePlayed', playerId, { curseId: curse.id, targetId: target.playerId, secondPlayerId: target.secondPlayerId, resource: target.resource });
-  apply();
+  const answering = entryId === null ? undefined : topEntry(state)?.kind;
+  log(state, 'cursePlayed', playerId, {
+    curseId: card.curseId,
+    targetId: target.playerId,
+    secondPlayerId: target.secondPlayerId,
+    resource: target.resource,
+    ...(answering ? { answering } : {}),
+  });
+  // A response takes over the window; the entry it answers gets a fresh one once the response resolves.
+  state.window = null;
+  pushEntry(state, { kind: 'curse', playerId, curseId: card.curseId, target, affects: prepared.affects, entryId });
+  continueResolution(state, rng);
   return ok;
 }
 
 /** Divine Foresight follow-up: the new order of the top cards, given as card ids, top card first. */
-export function arrangeExpedition(state: GameState, playerId: string, order: string[]): Result {
+export function arrangeExpedition(state: GameState, playerId: string, order: string[], rng: Rng): Result {
   const pending = state.pendingChoice;
   if (!pending || pending.kind !== 'arrangeExpedition' || pending.playerId !== playerId) return fail('Nothing to arrange');
   const top = state.expeditionDeck.slice(-pending.count); // last element is the top card
@@ -221,6 +324,7 @@ export function arrangeExpedition(state: GameState, playerId: string, order: str
   state.expeditionDeck.splice(-pending.count, pending.count, ...reordered);
   state.pendingChoice = null;
   log(state, 'expeditionArranged', playerId);
+  continueResolution(state, rng);
   return ok;
 }
 
@@ -235,11 +339,9 @@ export function foresightCards(state: GameState) {
 export function resolveForcedAttack(state: GameState, playerId: string, structureCardId: string, rng: Rng): Result {
   const pending = state.pendingChoice;
   if (!pending || pending.kind !== 'forcedAttack' || pending.playerId !== playerId) return fail('No forced attack is pending');
-  const attacker = getPlayer(state, playerId)!;
   const victim = getPlayer(state, pending.targetId)!;
   if (!victim.structures.some((s) => s.id === structureCardId)) return fail(`Choose one of ${victim.name}'s structures`);
-  state.expeditionDiscard.push(...takeFromInventory(attacker.inventory, state.config.costs.attack));
   state.pendingChoice = null;
-  log(state, 'attacked', playerId, { targetId: victim.id, structureCardId, forced: true });
-  return destroyStructure(state, victim.id, structureCardId, playerId, rng);
+  startAttack(state, playerId, victim.id, structureCardId, rng, true);
+  return ok;
 }

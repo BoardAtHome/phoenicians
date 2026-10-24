@@ -38,11 +38,11 @@ function resolvePending(state: GameState, r: Rng) {
         selection[res] = take;
         left -= take;
       }
-      expect(resolveDiscardChoice(state, player.id, selection).ok).toBe(true);
+      expect(resolveDiscardChoice(state, player.id, selection, r).ok).toBe(true);
       break;
     }
     case 'arrangeExpedition':
-      expect(arrangeExpedition(state, player.id, foresightCards(state).map((c) => c.id).reverse()).ok).toBe(true);
+      expect(arrangeExpedition(state, player.id, foresightCards(state).map((c) => c.id).reverse(), r).ok).toBe(true);
       break;
     case 'forcedAttack': {
       const victim = state.players.find((p) => p.id === pending.targetId)!;
@@ -93,7 +93,7 @@ describe('random play', () => {
     while (state.turn.number < 300 && !state.winnerId) {
       const player = active(state);
       performRitual(state, player.id, r);
-      buyDivineCoin(state, player.id);
+      buyDivineCoin(state, player.id, r);
       for (let i = 0; i < 2 && !state.winnerId; i++) {
         tryCurse(state, r);
         while (state.pendingChoice) resolvePending(state, r);
@@ -103,7 +103,7 @@ describe('random play', () => {
       for (let slot = 0; slot < state.shop.length; slot++) {
         const card = state.shop[slot];
         const cost = card && state.config.structures.find((s) => s.id === card.structureId)!.cost;
-        if (cost && canAfford(player.inventory, cost)) buildStructure(state, player.id, slot);
+        if (cost && canAfford(player.inventory, cost)) buildStructure(state, player.id, slot, r);
       }
       checkInvariants();
       if (state.winnerId) break;
@@ -111,7 +111,7 @@ describe('random play', () => {
 
       while (state.turn.activePlayerId === player.id) {
         if (state.pendingChoice) resolvePending(state, r);
-        else if (state.expedition!.lastDrawWasResource && r.next() < 0.3) expect(stopExpedition(state, player.id).ok).toBe(true);
+        else if (state.expedition!.lastDrawWasResource && r.next() < 0.3) expect(stopExpedition(state, player.id, r).ok).toBe(true);
         else expect(drawExpeditionCard(state, player.id, r).ok).toBe(true);
         checkInvariants();
       }

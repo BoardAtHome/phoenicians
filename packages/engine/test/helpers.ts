@@ -2,9 +2,12 @@ import { baselineConfig, createRng, drawExpeditionCard, endActionPhase, setupGam
 
 export const rng = () => createRng(42);
 
-export function newGame(playerCount = 3, seed = 42): GameState {
+/** Reaction windows are off unless asked for, so older tests see actions resolve at once. */
+export function newGame(playerCount = 3, seed = 42, { reactions = false } = {}): GameState {
   const seats = Array.from({ length: playerCount }, (_, i) => ({ id: `p${i}`, name: `Player ${i}` }));
-  return setupGame(structuredClone(baselineConfig), seats, 'p0', createRng(seed));
+  const config = structuredClone(baselineConfig);
+  if (!reactions) config.reactions.windowSeconds = 0;
+  return setupGame(config, seats, 'p0', createRng(seed));
 }
 
 let nextId = 0;
@@ -34,7 +37,7 @@ export function passTurn(state: GameState): void {
   endActionPhase(state, id);
   stackDeck(state, [res('grain')]);
   drawExpeditionCard(state, id, rng());
-  stopExpedition(state, id);
+  stopExpedition(state, id, rng());
 }
 
 /** Gives a player a structure straight from the building deck, or a fresh copy if none is left. */
