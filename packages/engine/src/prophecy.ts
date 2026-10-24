@@ -2,7 +2,7 @@ import type { ProphecyConfig } from './config/types';
 import { shuffle, type Rng } from './rng';
 import type { GameState, Player, Result } from './state';
 import { fail, ok } from './state';
-import { getPlayer, log } from './util';
+import { getPlayer, log, logPrivate } from './util';
 
 export function getProphecy(state: GameState, prophecyId: string): ProphecyConfig {
   return state.config.prophecies.find((p) => p.id === prophecyId)!;
@@ -55,7 +55,25 @@ export function replaceProphecy(state: GameState, playerId: string, rng: Rng): R
   const next = drawProphecy(state, rng);
   if (!next) return fail('No Prophecy cards are left to draw');
   state.prophecyDiscard.push(player.prophecyId);
+  logPrivate(state, 'prophecyChanged', playerId, { from: player.prophecyId, to: next, wasMet: player.prophecyMetTurn !== null });
   player.prophecyId = next;
+  player.prophecyMetTurn = null;
   log(state, 'prophecyReplaced', playerId);
   return ok;
+}
+
+/** Notes (privately) when a player's Prophecy first becomes met, or stops being met, for playtest stats. */
+export function trackProphecies(state: GameState): void {
+  if (state.turn.phase === 'gameOver') return;
+  for (const player of state.players) {
+    if (player.eliminated) continue;
+    const met = isProphecyMet(state, player);
+    if (met && player.prophecyMetTurn === null) {
+      player.prophecyMetTurn = state.turn.number;
+      logPrivate(state, 'prophecyMet', player.id, { prophecyId: player.prophecyId });
+    } else if (!met && player.prophecyMetTurn !== null) {
+      player.prophecyMetTurn = null;
+      logPrivate(state, 'prophecyLost', player.id, { prophecyId: player.prophecyId });
+    }
+  }
 }

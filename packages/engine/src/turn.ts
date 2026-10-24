@@ -1,8 +1,8 @@
-import { drawProphecy, isProphecyMet } from './prophecy';
+import { drawProphecy, isProphecyMet, trackProphecies } from './prophecy';
 import type { Rng } from './rng';
 import type { Expedition, GameState, Phase, Player, Result } from './state';
 import { fail, ok } from './state';
-import { getPlayer, log } from './util';
+import { getPlayer, log, logPrivate } from './util';
 
 export { getPlayer, log } from './util';
 
@@ -41,7 +41,9 @@ function revive(state: GameState, player: Player, rng: Rng): void {
     if (card?.type === 'resource') player.inventory.buildingMaterials.push(card);
   }
   player.prophecyId = drawProphecy(state, rng) ?? player.prophecyId;
+  player.prophecyMetTurn = null;
   log(state, 'playerRevived', player.id);
+  logPrivate(state, 'prophecyDealt', player.id, { prophecyId: player.prophecyId });
 }
 
 /**
@@ -49,6 +51,7 @@ function revive(state: GameState, player: Player, rng: Rng): void {
  * other players run first, then play continues after the player whose turn it was.
  */
 export function endTurn(state: GameState, rng: Rng): void {
+  trackProphecies(state);
   const current = getPlayer(state, state.turn.activePlayerId)!;
   current.constructionBanned = false;
 

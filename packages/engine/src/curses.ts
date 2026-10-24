@@ -252,7 +252,7 @@ function prepareResponse(
       if (curseId === 'expedition-theft' && exp.drawn.length === 0) return no('Nothing has been collected yet');
       const apply =
         curseId === 'expedition-interruption'
-          ? () => finishExpedition(state, rng)
+          ? () => finishExpedition(state, rng, 'interrupted')
           : curseId === 'expedition-theft'
             ? () => {
                 const stolen = exp.drawn.splice(0);

@@ -1,6 +1,7 @@
 export * from './config/types';
 export { baselineConfig } from './config/baseline';
 export { validateConfig } from './config/validate';
+export { diffConfig } from './config/diff';
 export * from './state';
 export { createRng, shuffle, type Rng } from './rng';
 export { setupGame, SetupError, type Seat } from './setup';
@@ -10,7 +11,7 @@ export { canPlayInWindow, canRespondWith, closeWindow, holdWindow, passWindow, r
 export { drawExpeditionCard, stopExpedition, resolveDiscardChoice } from './expedition';
 export { buildStructure } from './build';
 export { attack, buyDivineCoin, destroyStructure, eliminatePlayer, guessProphecy, performRitual, refillShop } from './actions';
-export { drawProphecy, getProphecy, isProphecyMet, prophecyProgress, replaceProphecy } from './prophecy';
+export { drawProphecy, getProphecy, isProphecyMet, prophecyProgress, replaceProphecy, trackProphecies } from './prophecy';
 export {
   arrangeExpedition,
   burdenCount,
@@ -24,3 +25,4 @@ export {
   type CurseTarget,
   type TargetField,
 } from './curses';
+export { eventsCsv, gameStats, summaryRow, toCsv, type CurseStats, type GameStats, type PlayerStats, type ProphecyStint } from './stats';

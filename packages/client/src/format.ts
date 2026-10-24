@@ -124,6 +124,8 @@ export function describeEvent(G: GameState, e: GameEvent): string | null {
       return `${who} was eliminated. Their Prophecy was ${prophecyName(G, d.prophecyId)}.${d.reviving ? ' They will return next turn (Revival).' : ''}`;
     case 'prophecyReplaced':
       return `${who}'s Prophecy was replaced.`;
+    case 'matchEnded':
+      return 'The admin ended this game.';
     case 'gameWon':
       return d.reason === 'prophecy'
         ? `${who} revealed ${prophecyName(G, d.prophecyId)} and won the game!`

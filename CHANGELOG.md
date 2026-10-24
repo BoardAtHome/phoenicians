@@ -3,6 +3,23 @@
 App builds. Rule and balance changes made through the admin page are versioned
 separately and shown on the in-app Changelog page.
 
+## 0.6.0 — Playtest tools
+
+- Admin page in three tabs: Config, Versions, and Matches and stats.
+- Form editor for every config number (decks, costs, buildings, Prophecies,
+  Curses and their numbers, reaction timer), with live validation and a preview
+  of unsaved edits. The JSON editor is still there.
+- Versions: compare any two versions, or a version and the draft, line by line.
+- Matches: every game with its config version and build. Per-game stats follow
+  the Playtesting Guide's scenario list: expeditions, Calamities, building pace,
+  shop stagnation, Prophecy timing and disruption, Curse use, reaction windows,
+  and per-player totals.
+- Downloads: a game's full log (CSV), everything about a game (JSON), and one
+  row per game for all games (CSV).
+- Admin match controls: undo the last action, end a stuck match. Players see
+  the change at once.
+- Deploys wait for CI to pass. New DEPLOY.md guide.
+
 ## 0.5.0 — Reactions
 
 - After each draw, attack, ritual, Curse, build, Divine Coin or guess, players

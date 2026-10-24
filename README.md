@@ -19,16 +19,6 @@ npm test
 
 Without `DATABASE_URL`, configs and games live in memory and reset on restart.
 
-## Deploy (Render)
+## Deploy
 
-1. In Render, choose **New > Blueprint** and select this repository. `render.yaml`
-   creates the web service and a Postgres database.
-2. Set `ADMIN_PASSWORD` when prompted.
-3. Every merge to `main` deploys automatically.
-
-| Variable | Purpose |
-| --- | --- |
-| `ADMIN_PASSWORD` | Unlocks the admin page. Admin is disabled if unset. |
-| `DATABASE_URL` | Postgres connection string. Set by the Blueprint. |
-| `PORT` | Set by Render. Defaults to 8000. |
-| `BUILD_VERSION` | Optional; defaults to the root `package.json` version. |
+See [DEPLOY.md](DEPLOY.md) for the Render setup, costs, releasing updates and troubleshooting.

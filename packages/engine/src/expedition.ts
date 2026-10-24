@@ -18,13 +18,13 @@ function drawFromDeck(state: GameState, rng: Rng): ExpeditionCard | undefined {
 const noCardsLeft = (state: GameState) => state.expeditionDeck.length === 0 && state.expeditionDiscard.length === 0;
 
 /** Moves surviving expedition cards into the explorer's inventory and ends the turn. */
-export function finishExpedition(state: GameState, rng: Rng): void {
+export function finishExpedition(state: GameState, rng: Rng, reason: 'stopped' | 'calamity' | 'interrupted'): void {
   const expedition = state.expedition!;
   // Draws of this expedition can no longer be answered.
   for (const entry of state.stack) if (entry.kind === 'moment' && entry.action === 'draw') entry.canceled = true;
   const player = getPlayer(state, expedition.playerId)!;
   addToInventory(player.inventory, expedition.drawn);
-  log(state, 'expeditionEnded', player.id, { kept: expedition.drawn.length });
+  log(state, 'expeditionEnded', player.id, { kept: expedition.drawn.length, draws: expedition.drawCount, reason });
   state.expedition = null;
   if (state.turn.extraExpeditions > 0) {
     state.turn.extraExpeditions--;
@@ -73,7 +73,7 @@ export function applyCalamity(state: GameState, player: Player, calamity: Calami
       break;
     }
   }
-  finishExpedition(state, rng);
+  finishExpedition(state, rng, 'calamity');
 }
 
 /** Draws one Expedition card for the explorer. */
@@ -118,7 +118,7 @@ export function stopExpedition(state: GameState, playerId: string, rng: Rng): Re
     if (!expedition.lastDrawWasResource) return fail('You can only stop right after drawing a resource');
     if (expedition.mustDraw > 0) return fail(`Forced Exploration: draw ${expedition.mustDraw} more before stopping`);
   }
-  finishExpedition(state, rng);
+  finishExpedition(state, rng, 'stopped');
   return ok;
 }
 
@@ -138,7 +138,7 @@ export function resolveDiscardChoice(state: GameState, playerId: string, selecti
   state.expeditionDiscard.push(...takeFromInventory(player.inventory, selection));
   log(state, 'discardChosen', playerId, { selection });
   state.pendingChoice = null;
-  if (pending.source.type === 'calamity') finishExpedition(state, rng);
+  if (pending.source.type === 'calamity') finishExpedition(state, rng, 'calamity');
   continueResolution(state, rng);
   return ok;
 }

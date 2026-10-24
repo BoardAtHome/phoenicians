@@ -40,6 +40,7 @@ export function playerView(G: GameState, playerID: string | null | undefined): P
       passed: G.window.passed.filter((id) => id === playerID),
       waitingCount: G.window.eligible.filter((id) => !G.window!.passed.includes(id)).length,
     },
+    log: gameOver ? G.log : G.log.filter((e) => !e.private),
     expeditionDeck: [],
     buildingDeck: [],
     curseDeck: [],

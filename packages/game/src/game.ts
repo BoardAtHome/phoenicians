@@ -59,8 +59,11 @@ const serverOnly = (moves: Record<string, Move>) =>
       name,
       {
         move: ((context, ...args) => {
+          const before = context.G.log.length;
           const result = move(context, ...args);
-          stampWindow(context.G, Date.now());
+          const now = Date.now();
+          stampWindow(context.G, now);
+          for (let i = before; i < context.G.log.length; i++) context.G.log[i]!.at ??= now;
           return result;
         }) as Move,
         client: false,
@@ -97,6 +100,7 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
       const resolved = resolveConfig(setupData);
       const G = setupGame(structuredClone(resolved.config), seats, setupData?.firstPlayer ?? '0', rngFrom(random));
       G.meta = { configVersion: resolved.configVersion, build: resolved.build };
+      for (const e of G.log) e.at = Date.now();
       return G;
     },
 
@@ -130,7 +134,7 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
       closeWindow: ({ G, random }, windowId: number) => toResult(closeWindow(G, windowId, Date.now(), rngFrom(random))),
     }),
 
-    endIf: ({ G }) => (G.winnerId ? { winner: G.winnerId } : undefined),
+    endIf: ({ G }) => (G.winnerId ? { winner: G.winnerId } : G.turn.phase === 'gameOver' ? { endedByAdmin: true } : undefined),
 
     playerView: ({ G, playerID }) => playerView(G, playerID),
   };

@@ -5,10 +5,10 @@ services:
     name: phoenicians
     runtime: node
     plan: free # free sleeps after ~15 idle minutes; "starter" stays awake
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/config
-    autoDeploy: true
+    autoDeployTrigger: checksPass # deploy main only after GitHub Actions CI passes
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -20,4 +20,6 @@ services:
           property: connectionString
 databases:
   - name: phoenicians-db
+    # Free databases are deleted 30 days (+14 days grace) after creation, with no backups.
+    # Switch to the smallest paid plan (0.1c-256mb, about $6/month) to keep configs and games.
     plan: free

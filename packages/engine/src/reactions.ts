@@ -4,7 +4,8 @@ import { applyCalamity } from './expedition';
 import { shuffle, type Rng } from './rng';
 import type { GameState, Result, StackEntry } from './state';
 import { fail, ok } from './state';
-import { getPlayer, log } from './util';
+import { trackProphecies } from './prophecy';
+import { getPlayer, log, logPrivate } from './util';
 
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
 type NewEntry = DistributiveOmit<StackEntry, 'id' | 'canceled' | 'windowDone'>;
@@ -64,6 +65,10 @@ function openWindow(state: GameState, entry: StackEntry): boolean {
     .filter((p) => p.curseHand.some((c) => canRespondWith(state, p.id, c.curseId, entry)))
     .map((p) => p.id);
   if (eligible.length === 0) return false;
+  const offered = Object.fromEntries(
+    eligible.map((id) => [id, [...new Set(getPlayer(state, id)!.curseHand.filter((c) => canRespondWith(state, id, c.curseId, entry)).map((c) => c.curseId))]]),
+  );
+  logPrivate(state, 'windowOpened', entry.playerId, { entryKind: entry.kind, offered });
   state.window = { id: state.nextWindowId++, entryId: entry.id, eligible, passed: [], deadline: null, updatedAt: null, heldBy: null, remainingMs: 0 };
   return true;
 }
@@ -73,6 +78,11 @@ function openWindow(state: GameState, entry: StackEntry): boolean {
  * Stops while a window is open or a player owes a choice; call again once that is settled.
  */
 export function continueResolution(state: GameState, rng: Rng): void {
+  resolveStack(state, rng);
+  trackProphecies(state);
+}
+
+function resolveStack(state: GameState, rng: Rng): void {
   for (;;) {
     if (state.turn.phase === 'gameOver') {
       state.stack = [];
@@ -145,7 +155,8 @@ function checkWindow(state: GameState, windowId: number): Result {
   return ok;
 }
 
-function closeCurrentWindow(state: GameState, rng: Rng): void {
+function closeCurrentWindow(state: GameState, rng: Rng, how: 'passed' | 'timer'): void {
+  log(state, 'windowClosed', undefined, { how });
   state.window = null;
   continueResolution(state, rng);
 }
@@ -166,7 +177,7 @@ export function passWindow(state: GameState, playerId: string, windowId: number,
   if (!window.eligible.includes(playerId)) return fail('You have nothing to respond with');
   if (!window.passed.includes(playerId)) window.passed.push(playerId);
   if (window.heldBy === playerId) releaseWindow(state, playerId, windowId, now);
-  if (window.eligible.every((id) => window.passed.includes(id))) closeCurrentWindow(state, rng);
+  if (window.eligible.every((id) => window.passed.includes(id))) closeCurrentWindow(state, rng, 'passed');
   return ok;
 }
 
@@ -205,6 +216,6 @@ export function closeWindow(state: GameState, windowId: number, now: number, rng
   if (!check.ok) return check;
   const deadline = state.window!.deadline;
   if (deadline === null || now < deadline) return fail('The reaction window is still open');
-  closeCurrentWindow(state, rng);
+  closeCurrentWindow(state, rng, 'timer');
   return ok;
 }

@@ -44,6 +44,7 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
     counters: { structuresDestroyed: 0, ritualsPerformed: 0 },
     constructionBans: 0,
     constructionBanned: false,
+    prophecyMetTurn: null,
     reviving: false,
   }));
 
@@ -107,6 +108,9 @@ export function setupGame(config: GameConfig, seats: Seat[], firstPlayerId: stri
     prophecyDeck,
     prophecyDiscard: [],
     winnerId: null,
-    log: [{ turn: 1, type: 'gameStarted', data: { players: players.map((p) => p.id) } }],
+    log: [
+      { turn: 1, type: 'gameStarted', data: { players: players.map((p) => p.id), firstPlayer: firstPlayerId } },
+      ...players.map((p) => ({ turn: 1, type: 'prophecyDealt', playerId: p.id, data: { prophecyId: p.prophecyId }, private: true as const })),
+    ],
   };
 }

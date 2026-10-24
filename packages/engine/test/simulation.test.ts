@@ -11,6 +11,8 @@ import {
   createRng,
   drawExpeditionCard,
   endActionPhase,
+  eventsCsv,
+  gameStats,
   foresightCards,
   passWindow,
   performRitual,
@@ -161,6 +163,10 @@ describe('random play', () => {
     }
     // The run should exercise Curses, not just skip them.
     expect(state.log.filter((e) => e.type === 'cursePlayed').length).toBeGreaterThan(5);
+    const stats = gameStats(state);
+    expect(stats.expeditions.count).toBe(state.log.filter((e) => e.type === 'expeditionEnded').length);
+    expect(stats.prophecies.length).toBeGreaterThanOrEqual(playerCount);
+    expect(eventsCsv(state).split('\n').length).toBeGreaterThan(state.log.length);
     if (reactions) expect(state.log.filter((e) => e.type === 'cursePlayed' && e.data?.answering).length).toBeGreaterThan(0);
     if (process.env.SIM_STATS) {
       const counts: Record<string, number> = {};
