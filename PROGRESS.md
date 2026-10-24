@@ -17,7 +17,7 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - [x] `packages/client`: Vite + React lobby, match links, board (verified end to end in a browser)
 - [x] Admin page: JSON config editor, publish versions, activate, draft from version; public changelog page
 - [x] Deploy setup: `render.yaml` Blueprint, README. Matches and configs persist in Postgres.
-- [ ] Open PR
+- [x] Open PR (awaiting merge)
 
 ## Next milestones
 
