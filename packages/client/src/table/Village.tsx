@@ -1,8 +1,10 @@
-import { RESOURCES, inventoryCounts, inventorySize, type Player } from '@phoenicians/engine';
+import { useState } from 'react';
+import { RESOURCES, canAfford, inventoryCounts, inventorySize, type Player } from '@phoenicians/engine';
 import { HIDDEN, type PlayerViewState } from '@phoenicians/game';
-import { CATEGORY_LABEL, RESOURCE_LABEL } from '../format';
+import { CATEGORY_LABEL, RESOURCE_LABEL, costText } from '../format';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
+import type { Turn } from './useTurn';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -22,8 +24,14 @@ export function ResourceTiles({ player, compact }: { player: Player; compact?: b
   );
 }
 
-/** A player's inventory and structures. */
-export function VillageSheet({ G, player, isMe, onClose }: { G: PlayerViewState; player: Player; isMe: boolean; onClose: () => void }) {
+/** A player's inventory and structures. A rival's structures can be picked as attack targets. */
+export function VillageSheet({ G, player, turn, onClose }: { G: PlayerViewState; player: Player; turn: Turn; onClose: () => void }) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const isMe = player.id === turn.me?.id;
+  const attackable = !isMe && !!turn.me && !player.eliminated && player.structures.length > 0;
+  const cost = G.config.costs.attack;
+  const affordable = !!turn.me && canAfford(turn.me.inventory, cost);
+  const pickedName = player.structures.find((c) => c.id === picked);
   const subtitle = isMe
     ? `${plural(player.structures.length, 'structure')} · ${plural(player.curseHand.length, 'Curse')} · ${plural(player.divineCoins, 'Divine Coin')}`
     : `${plural(inventorySize(player.inventory), 'card')} · ${plural(player.curseHand.length, 'Curse')} · ${plural(player.divineCoins, 'Divine Coin')}`;
@@ -39,7 +47,7 @@ export function VillageSheet({ G, player, isMe, onClose }: { G: PlayerViewState;
       <ResourceTiles player={player} compact />
       <div className="section-label">
         <span>Structures</span>
-        <span className="muted">Visible to everyone</span>
+        <span className="muted">{attackable ? 'Tap one to target it' : 'Visible to everyone'}</span>
       </div>
       {player.structures.length === 0 ? (
         <p className="muted small">No structures yet.</p>
@@ -47,17 +55,45 @@ export function VillageSheet({ G, player, isMe, onClose }: { G: PlayerViewState;
         <div className="structures">
           {player.structures.map((card) => {
             const s = G.config.structures.find((x) => x.id === card.structureId)!;
-            return (
-              <div key={card.id} className="structure">
+            const body = (
+              <>
                 <span className={`chip round lg bg-${s.category}`}><Icon name={s.category} size={16} /></span>
-                <span>
+                <span className="structure-text">
                   <b>{s.name}</b>
                   <span className="muted small">{CATEGORY_LABEL[s.category]}</span>
                 </span>
-              </div>
+                {picked === card.id && <span className="picked"><Icon name="check" size={14} /></span>}
+              </>
+            );
+            return attackable ? (
+              <button key={card.id} type="button" className={`structure ${picked === card.id ? 'selected' : ''}`} onClick={() => setPicked(picked === card.id ? null : card.id)} aria-pressed={picked === card.id}>
+                {body}
+              </button>
+            ) : (
+              <div key={card.id} className="structure">{body}</div>
             );
           })}
         </div>
+      )}
+      {attackable && (
+        <button
+          type="button"
+          className="big danger-btn"
+          disabled={!turn.canAct || !affordable || !pickedName}
+          onClick={() => {
+            turn.send('attack', player.id, picked);
+            onClose();
+          }}
+        >
+          <Icon name="attack" />
+          {!turn.canAct
+            ? 'Attack during your actions'
+            : !affordable
+              ? `Need ${costText(cost)} to attack`
+              : pickedName
+                ? `Attack ${G.config.structures.find((x) => x.id === pickedName.structureId)?.name} · ${costText(cost)}`
+                : 'Select a structure'}
+        </button>
       )}
     </Sheet>
   );

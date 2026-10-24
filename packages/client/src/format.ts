@@ -1,4 +1,4 @@
-import { RESOURCES, type GameEvent, type GameState, type Resource, type ResourceMap, type StackEntry } from '@phoenicians/engine';
+import { RESOURCES, type GameEvent, type GameState, type ProphecyConfig, type Resource, type ResourceMap, type StackEntry } from '@phoenicians/engine';
 
 export const RESOURCE_LABEL: Record<Resource, string> = {
   buildingMaterials: 'Materials',
@@ -13,6 +13,21 @@ export const costText = (cost: ResourceMap) =>
   RESOURCES.filter((r) => cost[r] > 0)
     .map((r) => `${cost[r]} ${RESOURCE_LABEL[r]}`)
     .join(' + ') || 'Free';
+
+/** What a Prophecy counts, e.g. "Military structures owned". */
+export function metricText(p: ProphecyConfig): string {
+  const m = p.metric;
+  switch (m.kind) {
+    case 'structuresDestroyed':
+      return 'structures destroyed';
+    case 'ritualsPerformed':
+      return 'rituals performed';
+    case 'structuresOwned':
+      return m.category ? `${CATEGORY_LABEL[m.category]} structures owned` : 'structures owned';
+    case 'resourceHeld':
+      return `${RESOURCE_LABEL[m.resource]} held`;
+  }
+}
 
 const name = (G: GameState, id: unknown) => G.players.find((p) => p.id === id)?.name ?? String(id);
 const structureName = (G: GameState, id: unknown) => G.config.structures.find((s) => s.id === id)?.name ?? String(id);

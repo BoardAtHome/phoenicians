@@ -24,7 +24,9 @@ The new screen is opt-in with `?table=1` on a match URL until step 4 makes it th
       seats around the table (next player on your left, then across the top, then right), Expedition deck
       in the middle, ticker, dock (Prophecy peek, resource tiles, village/Curses/coins strip, Set out / Draw / Keep),
       village and activity sheets. Reactions, Curses and pending choices reuse the classic components for now.
-- [ ] Step 2: Market sheet and Build, Actions sheet (Ritual, Divine Coin, Guess), attack mode and attack flow
+- [x] Step 2: Market sheet and Build (shortfall shown per building), Actions sheet (Ritual, Divine Coin, Attack,
+      Guess; costs from config, disabled rows show why), Guess sheet, attack mode (ringed seats) and attack
+      from a rival's village sheet. `metricText` moved to `format.ts`.
 - [ ] Step 3: Curse hand, target pickers, reaction prompt and waiting banner (config timer, pause, pass),
       Divine Foresight, discard choices, Forced Conflict
 - [ ] Step 4: game menu (invite, leave seat, versions), game-over card, desktop polish, table becomes default,
