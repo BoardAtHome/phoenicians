@@ -8,9 +8,9 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - [x] Repo scaffold: npm workspaces, TypeScript, Vitest (`packages/engine`)
 - [x] Config types, baseline config, validation (`packages/engine/src/config`)
 - [x] Game setup: decks, shop, Prophecy dealing, starting curses (`setup.ts`)
-- [ ] Turn flow: action phase → expedition → next player
-- [ ] Expedition draws and all Calamity effects
-- [ ] Shop and building
+- [x] Turn flow: action phase → expedition → next player
+- [x] Expedition draws and all Calamity effects (untested)
+- [x] Shop and building (untested)
 - [ ] Tests for every Calamity, build/refill, card conservation
 - [ ] Open PR
 
