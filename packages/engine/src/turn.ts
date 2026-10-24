@@ -1,0 +1,43 @@
+import type { GameState, Phase, Player, Result } from './state';
+import { fail, ok } from './state';
+
+export function getPlayer(state: GameState, playerId: string): Player | undefined {
+  return state.players.find((p) => p.id === playerId);
+}
+
+export function log(state: GameState, type: string, playerId?: string, data?: Record<string, unknown>): void {
+  state.log.push({ turn: state.turn.number, type, ...(playerId ? { playerId } : {}), ...(data ? { data } : {}) });
+}
+
+/** Checks that `playerId` is the active player, the game is in `phase`, and nothing is waiting on a choice. */
+export function checkActive(state: GameState, playerId: string, phase: Phase): Result {
+  if (state.turn.phase === 'gameOver') return fail('The game is over');
+  if (state.turn.activePlayerId !== playerId) return fail('It is not your turn');
+  if (state.turn.phase !== phase) return fail(`Not allowed during the ${state.turn.phase} phase`);
+  if (state.pendingChoice) return fail('Waiting for a choice to be made');
+  return ok;
+}
+
+/** Ends the action phase and starts the expedition. */
+export function endActionPhase(state: GameState, playerId: string): Result {
+  const check = checkActive(state, playerId, 'action');
+  if (!check.ok) return check;
+  state.turn.phase = 'expedition';
+  state.expedition = { playerId, drawn: [], drawCount: 0, lastDrawWasResource: false };
+  log(state, 'expeditionStarted', playerId);
+  return ok;
+}
+
+/** Passes the turn to the next player still in the game. */
+export function endTurn(state: GameState): void {
+  const n = state.players.length;
+  const current = state.players.findIndex((p) => p.id === state.turn.activePlayerId);
+  for (let step = 1; step <= n; step++) {
+    const next = state.players[(current + step) % n]!;
+    if (!next.eliminated) {
+      state.turn = { number: state.turn.number + 1, activePlayerId: next.id, phase: 'action' };
+      log(state, 'turnStarted', next.id);
+      return;
+    }
+  }
+}
