@@ -13,7 +13,7 @@ const cost = (buildingMaterials = 0, warriors = 0, grain = 0, purpleDye = 0): Re
  * until they are set before the first playtest.
  */
 export const baselineConfig: GameConfig = {
-  players: { min: 3, max: 7 },
+  players: { min: 3, max: 6 },
   setup: {
     startingResources: cost(),
     startingCurses: 3,

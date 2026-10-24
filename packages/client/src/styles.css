@@ -85,61 +85,18 @@ textarea.code { font: 12px/1.4 ui-monospace, Menlo, monospace; width: 100%; resi
 .sharebar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .sharebar.inline { margin: 8px 0 16px; }
 
-.board .status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); margin-bottom: 16px; }
-.board .status.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-.banner { text-align: center; padding: 18px; border-radius: 10px; background: var(--accent); color: var(--accent-text); margin-bottom: 16px; }
-.dialog { border-color: var(--accent); margin-bottom: 16px; }
-.steppers { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 12px; }
-.steppers label { display: flex; flex-direction: column; font-size: 13px; gap: 4px; }
-.steppers input { width: 80px; }
 
-.shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.card { border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; background: var(--bg); }
-.card button { margin-top: auto; }
-.card.empty { justify-content: center; align-items: center; color: var(--muted); min-height: 110px; border-left-color: var(--line); }
-.card-title { font-weight: 600; }
-.cat-civic { border-left-color: var(--civic); }
-.cat-military { border-left-color: var(--military); }
-.cat-agricultural { border-left-color: var(--agricultural); }
-.cat-commercial { border-left-color: var(--commercial); }
 
-.resources, .drawn, .village { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
-.res { font-size: 12.5px; padding: 3px 8px; border-radius: 999px; border: 1px solid; }
-.res-buildingMaterials { color: var(--res-buildingMaterials); }
-.res-warriors { color: var(--res-warriors); }
-.res-grain { color: var(--res-grain); }
-.res-purpleDye { color: var(--res-purpleDye); }
-.building { font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); border-left: 4px solid; background: var(--bg); display: inline-flex; align-items: center; }
 
-.prophecy { display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px dashed var(--accent); border-radius: 8px; margin: 10px 0; }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.guess { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-.curses { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-.curse { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg); }
 .stars { color: var(--res-grain); font-size: 12px; }
 
-.opponent.current { border-color: var(--accent); }
-.opponent.out { opacity: 0.55; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line); vertical-align: middle; }
 .dot.on { background: var(--success); }
-.log ol { list-style: none; padding: 0; margin: 0; max-height: 360px; overflow: auto; font-size: 13px; }
-.log li { padding: 4px 0; border-bottom: 1px solid var(--line); }
 
 .version { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .changes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 .changes ul { padding-left: 16px; margin: 2px 0 0; }
 
-.curse { display: flex; flex-direction: column; gap: 6px; }
-.curse.selected { border-color: var(--accent); }
-.curse button { align-self: flex-start; }
-.curse-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; border-color: var(--accent); }
-.foresight { display: flex; flex-direction: column; gap: 6px; padding-left: 20px; }
-.foresight li { display: flex; gap: 6px; align-items: center; }
-.res.calamity { color: var(--danger); }
-.reaction { margin-bottom: 16px; position: sticky; top: 8px; z-index: 2; }
-.reaction.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-.reaction .countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
-.reaction .curse-form { margin-bottom: 8px; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tabs button.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .config-form .field { display: flex; flex-direction: column; gap: 2px; font-size: 0.9em; }

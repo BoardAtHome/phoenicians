@@ -44,6 +44,7 @@ describe('validateConfig', () => {
 
   it('rejects too few curses for starting hands', () => {
     const c = clone();
+    c.players.max = 7;
     for (const curse of c.curses) curse.copies = 1;
     expect(validateConfig(c).join()).toMatch(/curses have 20 copies/);
   });
@@ -56,6 +57,7 @@ describe('validateConfig', () => {
 
   it('rejects starting resources the deck cannot supply', () => {
     const c = clone();
+    c.players.max = 7;
     c.setup.startingResources.warriors = 5;
     expect(validateConfig(c).join()).toMatch(/warriors cards/);
   });

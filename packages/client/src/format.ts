@@ -1,4 +1,4 @@
-import { RESOURCES, type GameEvent, type GameState, type Resource, type ResourceMap, type StackEntry } from '@phoenicians/engine';
+import { RESOURCES, type GameEvent, type GameState, type ProphecyConfig, type Resource, type ResourceMap, type StackEntry } from '@phoenicians/engine';
 
 export const RESOURCE_LABEL: Record<Resource, string> = {
   buildingMaterials: 'Materials',
@@ -14,6 +14,21 @@ export const costText = (cost: ResourceMap) =>
     .map((r) => `${cost[r]} ${RESOURCE_LABEL[r]}`)
     .join(' + ') || 'Free';
 
+/** What a Prophecy counts, e.g. "Military structures owned". */
+export function metricText(p: ProphecyConfig): string {
+  const m = p.metric;
+  switch (m.kind) {
+    case 'structuresDestroyed':
+      return 'structures destroyed';
+    case 'ritualsPerformed':
+      return 'rituals performed';
+    case 'structuresOwned':
+      return m.category ? `${CATEGORY_LABEL[m.category]} structures owned` : 'structures owned';
+    case 'resourceHeld':
+      return `${RESOURCE_LABEL[m.resource]} held`;
+  }
+}
+
 const name = (G: GameState, id: unknown) => G.players.find((p) => p.id === id)?.name ?? String(id);
 const structureName = (G: GameState, id: unknown) => G.config.structures.find((s) => s.id === id)?.name ?? String(id);
 const calamityName = (G: GameState, id: unknown) => G.config.expedition.calamities.find((c) => c.id === id)?.name ?? String(id);
@@ -21,23 +36,26 @@ const prophecyName = (G: GameState, id: unknown) => G.config.prophecies.find((p)
 
 const curseName = (G: GameState, id: unknown) => G.config.curses.find((c) => c.id === id)?.name ?? String(id);
 
-/** What a reaction window is about, e.g. "Ana attacked Bob's Farm". */
-export function describeEntry(G: GameState, e: StackEntry): string {
-  const who = name(G, e.playerId);
+/** What a reaction window is about, e.g. "Ana is attacking Bob's Farm", or "your Farm" when Bob is viewing. */
+export function describeEntry(G: GameState, e: StackEntry, viewerId?: string): string {
+  const who = e.playerId === viewerId ? 'You' : name(G, e.playerId);
+  const whom = (id: unknown) => (id === viewerId ? 'you' : name(G, id));
+  const whose = (id: unknown) => (id === viewerId ? 'your' : `${name(G, id)}'s`);
+  const is = e.playerId === viewerId ? 'are' : 'is';
   switch (e.kind) {
     case 'attack': {
       const target = G.players.find((p) => p.id === e.targetId);
       const card = target?.structures.find((s) => s.id === e.structureCardId);
-      return `${who} is attacking ${name(G, e.targetId)}'s ${card ? structureName(G, card.structureId) : 'structure'}`;
+      return `${who} ${is} attacking ${whose(e.targetId)} ${card ? structureName(G, card.structureId) : 'structure'}`;
     }
     case 'ritual':
-      return `${who} is performing a ritual to draw a Curse`;
+      return `${who} ${is} performing a ritual to draw a Curse`;
     case 'calamity':
       return `${who} drew a Calamity: ${calamityName(G, e.calamityId)}`;
     case 'eliminate':
-      return `${who} guessed ${name(G, e.targetId)}'s Prophecy. ${name(G, e.targetId)} is about to be eliminated`;
+      return `${who} guessed ${whose(e.targetId)} Prophecy. ${e.targetId === viewerId ? 'You are' : `${name(G, e.targetId)} is`} about to be eliminated`;
     case 'curse': {
-      const on = e.target.playerId ? ` on ${name(G, e.target.playerId)}` : '';
+      const on = e.target.playerId ? ` on ${whom(e.target.playerId)}` : '';
       return `${who} played ${curseName(G, e.curseId)}${on}`;
     }
     case 'moment': {

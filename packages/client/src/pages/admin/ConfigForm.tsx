@@ -3,11 +3,10 @@ import {
   STRUCTURE_CATEGORIES,
   type CalamityConfig,
   type GameConfig,
-  type ProphecyConfig,
   type Resource,
   type ResourceMap,
 } from '@phoenicians/engine';
-import { CATEGORY_LABEL, RESOURCE_LABEL } from '../../format';
+import { CATEGORY_LABEL, RESOURCE_LABEL, metricText } from '../../format';
 
 type Update = (change: (c: GameConfig) => void) => void;
 
@@ -89,20 +88,6 @@ function calamityParam(c: CalamityConfig, i: number, update: Update) {
       );
     case 'discardExpedition':
       return <span className="muted">Discard the whole current expedition</span>;
-  }
-}
-
-function metricText(p: ProphecyConfig): string {
-  const m = p.metric;
-  switch (m.kind) {
-    case 'structuresDestroyed':
-      return 'structures destroyed';
-    case 'ritualsPerformed':
-      return 'rituals performed';
-    case 'structuresOwned':
-      return m.category ? `${CATEGORY_LABEL[m.category]} structures owned` : 'structures owned';
-    case 'resourceHeld':
-      return `${RESOURCE_LABEL[m.resource]} held`;
   }
 }
 
