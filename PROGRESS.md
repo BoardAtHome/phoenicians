@@ -27,8 +27,11 @@ The new screen is opt-in with `?table=1` on a match URL until step 4 makes it th
 - [x] Step 2: Market sheet and Build (shortfall shown per building), Actions sheet (Ritual, Divine Coin, Attack,
       Guess; costs from config, disabled rows show why), Guess sheet, attack mode (ringed seats) and attack
       from a rival's village sheet. `metricText` moved to `format.ts`.
-- [ ] Step 3: Curse hand, target pickers, reaction prompt and waiting banner (config timer, pause, pass),
-      Divine Foresight, discard choices, Forced Conflict
+- [x] Step 3: `table/Curses.tsx`: Curse hand sheet, target pickers (players, resources, exchange, structures),
+      reaction windows (blocking prompt when the action is aimed at you, banner otherwise, waiting banner for
+      everyone else; timer from config, pause while choosing, Pass / Not now), Divine Foresight, discard and
+      Forced Conflict sheets. The ticker and reaction banner sit at the top of the dock so they stay in view.
+      `describeEntry` takes the viewer's id ("Sara is attacking your Farm").
 - [ ] Step 4: game menu (invite, leave seat, versions), game-over card, desktop polish, table becomes default,
       classic board removed, browser check at 3/5/6 players on phone and desktop
 

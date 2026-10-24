@@ -8,7 +8,7 @@ type Send = (move: string, ...args: unknown[]) => void;
 type Moves = Record<string, ((...args: unknown[]) => void) | undefined>;
 
 /** Seconds left on the window, counted on this device from when the server last set the deadline. */
-function useCountdown(G: PlayerViewState): number {
+export function useCountdown(G: PlayerViewState): number {
   const window = G.window;
   const [now, setNow] = useState(Date.now());
   const endRef = useRef({ key: '', end: 0 });

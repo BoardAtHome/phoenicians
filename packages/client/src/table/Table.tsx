@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import type { BoardProps } from 'boardgame.io/react';
 import type { PlayerViewState } from '@phoenicians/game';
 import { describeEvent, describeEntry } from '../format';
-import { CurseHand, DiscardDialog, ForcedAttackDialog, ForesightDialog } from '../board/Curses';
-import { ReactionBar } from '../board/Reactions';
 import { ActionsSheet, GuessSheet } from './Actions';
 import { Center } from './Center';
+import { CursePlaySheet, CursesSheet, DiscardSheet, ForcedAttackSheet, ForesightSheet, ReactionLayer } from './Curses';
 import { Dock } from './Dock';
 import { Icon } from './Icon';
 import { MarketSheet } from './Market';
@@ -15,7 +14,7 @@ import { lastIndex, seatColor, seating, useTurn } from './useTurn';
 import { VillageSheet } from './Village';
 import './table.css';
 
-type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | null;
+type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | { kind: 'play'; cardId: string } | null;
 
 /** The game laid out like a real table: rivals around the edge, the Expedition deck in the middle, your hand at the bottom. */
 export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewState>) {
@@ -28,7 +27,11 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
   useEffect(() => {
     if (!turn.canAct && !busy) setAttacking(false);
   }, [turn.canAct, busy]);
-  useEffect(() => setAttacking(false), [G.log.length]); // the attack went through, or something else happened
+  useEffect(() => setAttacking(false), [G.log.length]);
+  // A reaction you can answer takes over the screen: close whatever sheet was open underneath.
+  useEffect(() => {
+    if (G.window && me && G.window.eligible.includes(me.id)) setOverlay(null);
+  }, [G.window?.id]); // the attack went through, or something else happened
   const isConnected = (id: string) => matchData?.find((m) => String(m.id) === id)?.isConnected ?? false;
 
   const seats = seating(G, me?.id);
@@ -50,7 +53,21 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
       onClick={() => setOverlay({ kind: 'village', playerId: p.id })}
     />
   );
+  const playing = overlay?.kind === 'play' ? me?.curseHand.find((c) => c.id === overlay.cardId) : undefined;
   const villageOf = overlay?.kind === 'village' ? G.players.find((p) => p.id === overlay.playerId) : undefined;
+
+  // The newest event, or the reaction window, sits on top of your dock so it is always in view.
+  const news = G.window ? (
+    <ReactionLayer key={G.window.id} G={G} turn={turn} moves={moves as never} />
+  ) : (
+    <button type="button" className="ticker" onClick={() => setOverlay({ kind: 'log' })}>
+      {waitingOn
+        ? `Waiting for ${waitingOn} to ${pending!.kind === 'discardInventory' ? 'choose cards to discard' : pending!.kind === 'arrangeExpedition' ? 'arrange the Expedition deck' : 'choose a structure to attack'}…`
+        : G.stack.length > 0
+          ? describeEntry(G, G.stack[G.stack.length - 1]!, playerID ?? undefined)
+          : lastEvent && describeEvent(G, lastEvent)}
+    </button>
+  );
 
   return (
     <div className="table">
@@ -92,27 +109,10 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
         </div>
       </div>
 
-      {G.window ? (
-        <ReactionBar key={G.window.id} G={G} me={me} send={send} moves={moves as never} busy={busy} />
-      ) : (
-        <button type="button" className="ticker" onClick={() => setOverlay({ kind: 'log' })}>
-          {waitingOn
-            ? `Waiting for ${waitingOn} to ${pending!.kind === 'discardInventory' ? 'choose cards to discard' : pending!.kind === 'arrangeExpedition' ? 'arrange the Expedition deck' : 'choose a structure to attack'}…`
-            : G.stack.length > 0
-              ? describeEntry(G, G.stack[G.stack.length - 1]!)
-              : lastEvent && describeEvent(G, lastEvent)}
-        </button>
-      )}
-
-      {pending?.kind === 'arrangeExpedition' && pending.playerId === playerID && G.foresight.length > 0 && (
-        <ForesightDialog key={G.foresight.map((c) => c.id).join()} G={G} send={send} busy={busy} />
-      )}
-      {pending?.kind === 'forcedAttack' && pending.playerId === playerID && <ForcedAttackDialog G={G} targetId={pending.targetId} send={send} busy={busy} />}
-      {pending?.kind === 'discardInventory' && me && pending.playerId === me.id && <DiscardDialog G={G} me={me} send={send} busy={busy} />}
-
       <Dock
         G={G}
         turn={turn}
+        top={news}
         onVillage={() => me && setOverlay({ kind: 'village', playerId: me.id })}
         onCurses={() => setOverlay({ kind: 'curses' })}
         onActions={() => setOverlay({ kind: 'actions' })}
@@ -141,11 +141,27 @@ export function Table({ G, moves, playerID, matchData }: BoardProps<PlayerViewSt
         />
       )}
       {overlay?.kind === 'guess' && <GuessSheet G={G} turn={turn} onClose={close} />}
-      {overlay?.kind === 'curses' && me && (
-        <Sheet title="Your Curses" subtitle={`${me.curseHand.length} in hand`} onClose={close}>
-          <CurseHand G={G} me={me} canAct={turn.canAct || turn.exploring} send={send} />
-        </Sheet>
+      {overlay?.kind === 'curses' && <CursesSheet G={G} turn={turn} onClose={close} onPlay={(card) => setOverlay({ kind: 'play', cardId: card.id })} />}
+      {overlay?.kind === 'play' && me && playing && (
+        <CursePlaySheet
+          key={playing.id}
+          G={G}
+          me={me}
+          card={playing}
+          onBack={() => setOverlay({ kind: 'curses' })}
+          onPlay={(target) => {
+            send('playCurse', playing.id, target);
+            close();
+          }}
+        />
       )}
+
+      {/* Choices the game is waiting on come last so they sit above everything else. */}
+      {pending?.kind === 'arrangeExpedition' && pending.playerId === playerID && G.foresight.length > 0 && (
+        <ForesightSheet key={G.foresight.map((c) => c.id).join()} G={G} turn={turn} />
+      )}
+      {pending?.kind === 'forcedAttack' && pending.playerId === playerID && <ForcedAttackSheet G={G} turn={turn} targetId={pending.targetId} />}
+      {pending?.kind === 'discardInventory' && me && pending.playerId === me.id && <DiscardSheet G={G} turn={turn} me={me} />}
       {overlay?.kind === 'log' && (
         <Sheet title="Activity" onClose={close}>
           <ol className="log-list">

@@ -49,12 +49,14 @@ function ProphecyBar({ G, me }: { G: PlayerViewState; me: Player }) {
 export function Dock({
   G,
   turn,
+  top,
   onVillage,
   onCurses,
   onActions,
 }: {
   G: PlayerViewState;
   turn: Turn;
+  top: React.ReactNode;
   onVillage: () => void;
   onCurses: () => void;
   onActions: () => void;
@@ -98,6 +100,7 @@ export function Dock({
 
   return (
     <div className="dock">
+      {top}
       <ProphecyBar G={G} me={me} />
       <ResourceTiles player={me} />
       <div className="strip">
