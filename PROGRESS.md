@@ -9,10 +9,11 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - [x] Config types, baseline config, validation (`packages/engine/src/config`)
 - [x] Game setup: decks, shop, Prophecy dealing, starting curses (`setup.ts`)
 - [x] Turn flow: action phase → expedition → next player
-- [x] Expedition draws and all Calamity effects (untested)
-- [x] Shop and building (untested)
-- [ ] Tests for every Calamity, build/refill, card conservation
-- [ ] Open PR
+- [x] Expedition draws and all Calamity effects
+- [x] Shop and building
+- [x] Tests for every Calamity, build/refill, card conservation (50 tests, `npm test`)
+- [x] CI: GitHub Actions runs typecheck and tests on every PR
+- [x] Open PR (awaiting review/merge)
 
 ## Next milestones
 
