@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { GameConfig } from '@phoenicians/engine';
 import { createPhoenicians, type SetupData } from '@phoenicians/game';
+import type { StorageAPI } from 'boardgame.io';
 import { Server } from 'boardgame.io/server';
 import serve from 'koa-static';
 import { AdminAuth } from './auth';
@@ -14,6 +15,8 @@ export interface AppOptions {
   /** Built React client to serve; omitted in development, where Vite serves it. */
   clientDir?: string;
   origins?: string[];
+  /** boardgame.io match storage; in-memory when omitted. */
+  db?: StorageAPI.Async | StorageAPI.Sync;
 }
 
 type Ctx = { request: { headers: Record<string, string | string[] | undefined> }; req: NodeJS.ReadableStream; status: number; body: unknown };
@@ -28,7 +31,7 @@ async function readJson(ctx: Ctx): Promise<Record<string, unknown>> {
   }
 }
 
-export function createApp({ store, adminPassword, build, clientDir, origins }: AppOptions) {
+export function createApp({ store, adminPassword, build, clientDir, origins, db }: AppOptions) {
   const auth = new AdminAuth(adminPassword);
 
   const game = createPhoenicians({
@@ -40,7 +43,7 @@ export function createApp({ store, adminPassword, build, clientDir, origins }: A
     },
   });
 
-  const server = Server({ games: [game], origins: origins ?? [/.*/] });
+  const server = Server({ games: [game], origins: origins ?? [/.*/], ...(db ? { db } : {}) });
   const router = server.router;
 
   const admin = (handler: (ctx: Ctx) => Promise<void>) => async (ctx: Ctx) => {
