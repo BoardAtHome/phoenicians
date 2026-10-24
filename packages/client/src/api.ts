@@ -1,4 +1,4 @@
-import type { GameConfig } from '@phoenicians/engine';
+import type { GameConfig, GameState, GameStats } from '@phoenicians/engine';
 import { LobbyClient } from 'boardgame.io/client';
 
 export const SERVER = window.location.origin;
@@ -77,6 +77,37 @@ export interface Draft {
   changes: ChangeEntry[];
 }
 
+export interface MatchSummary {
+  matchID: string;
+  createdAt: number;
+  updatedAt: number;
+  players: { name: string; eliminated: boolean; connected: boolean }[];
+  turn: number;
+  phase: string;
+  activePlayer?: string;
+  winner: string | null;
+  configVersion: string;
+  build: string;
+  undoDepth: number;
+}
+export interface MatchDetail {
+  summary: MatchSummary;
+  stats: GameStats;
+  G: GameState;
+}
+
+/** Fetches an admin-only file and hands it to the browser as a download. */
+async function download(url: string, filename: string) {
+  const res = await fetch(url, { headers: { authorization: `Bearer ${getAdminToken() ?? ''}` } });
+  if (!res.ok) throw new ApiError(`Download failed (${res.status})`, [], res.status);
+  const href = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
 export const api = {
   config: () => request<{ version: number; build: string; config: GameConfig }>('GET', '/api/config'),
   versions: () => request<{ build: string; versions: VersionSummary[] }>('GET', '/api/versions'),
@@ -91,4 +122,12 @@ export const api = {
   publish: (note: string) => request<VersionSummary>('POST', '/api/admin/publish', { note }, true),
   activate: (versionId: number) => request<{ active: number }>('POST', '/api/admin/activate', { versionId }, true),
   draftToken: () => request<{ token: string }>('POST', '/api/admin/draft-token', {}, true),
+  versionConfig: (id: number) => request<VersionSummary & { config: GameConfig }>('GET', `/api/versions/${id}`),
+  matches: () => request<{ matches: MatchSummary[] }>('GET', '/api/admin/matches', undefined, true),
+  match: (id: string) => request<MatchDetail>('GET', `/api/admin/matches/${id}`, undefined, true),
+  endMatch: (id: string) => request<{ summary: MatchSummary }>('POST', `/api/admin/matches/${id}/end`, {}, true),
+  undoMatch: (id: string) => request<{ summary: MatchSummary }>('POST', `/api/admin/matches/${id}/undo`, {}, true),
+  downloadLog: (id: string) => download(`/api/admin/matches/${id}/log.csv`, `phoenicians-${id}-log.csv`),
+  downloadJson: (id: string) => download(`/api/admin/matches/${id}/export.json`, `phoenicians-${id}.json`),
+  downloadSummary: () => download('/api/admin/stats.csv', 'phoenicians-games.csv'),
 };

@@ -88,6 +88,16 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
     ctx.body = { build, versions: [...store.versions].reverse().map(versionSummary) };
   });
 
+  router.get('/api/versions/:id', (ctx: Ctx) => {
+    const version = store.version(Number(ctx.params.id));
+    if (!version) {
+      ctx.status = 404;
+      ctx.body = { error: 'No such version' };
+      return;
+    }
+    ctx.body = { ...versionSummary(version), config: version.config };
+  });
+
   router.post('/api/admin/login', async (ctx: Ctx) => {
     const { password } = await readJson(ctx);
     const token = typeof password === 'string' ? auth.login(password) : null;

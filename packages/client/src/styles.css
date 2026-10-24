@@ -140,3 +140,20 @@ textarea.code { font: 12px/1.4 ui-monospace, Menlo, monospace; width: 100%; resi
 .reaction.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .reaction .countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .reaction .curse-form { margin-bottom: 8px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.config-form .field { display: flex; flex-direction: column; gap: 2px; font-size: 0.9em; }
+.config-form .res-inputs { display: flex; gap: 10px; flex-wrap: wrap; }
+input.num { width: 76px; }
+.form-section { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.form-section > summary { cursor: pointer; padding: 4px 0; }
+.form-section > .stack { margin-top: 8px; }
+.form-table { border-collapse: collapse; width: 100%; font-size: 0.9em; display: block; overflow-x: auto; }
+.form-table th { text-align: left; font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.form-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.form-table td input:not(.num) { min-width: 140px; }
+.form-table td textarea { width: 100%; min-width: 180px; margin-top: 4px; }
+.form-table tr.selected td { background: var(--bg); }
+.save-bar { position: sticky; bottom: 0; background: var(--panel); padding: 10px 0 4px; border-top: 1px solid var(--line); }
+ul.diff { margin: 4px 0; padding-left: 18px; font-size: 0.85em; max-height: 260px; overflow: auto; }
+.stats-view h3 { margin: 12px 0 0; }

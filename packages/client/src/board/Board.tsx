@@ -66,6 +66,7 @@ export function Board({ G, moves, playerID, matchData }: Props) {
   const exploring = myTurn && G.turn.phase === 'expedition' && settled && !busy;
   const pending = G.pendingChoice;
   const winner = G.winnerId ? G.players.find((p) => p.id === G.winnerId) : null;
+  const ended = G.turn.phase === 'gameOver' && !winner;
   const costs = G.config.costs;
   const noCardsLeft = G.counts.expeditionDeck === 0 && G.expeditionDiscard.length === 0;
   const canStop =
@@ -75,6 +76,8 @@ export function Board({ G, moves, playerID, matchData }: Props) {
 
   const statusText = winner
     ? `${winner.name} won the game.`
+    : G.turn.phase === 'gameOver'
+      ? 'This game has ended.'
     : pending
       ? `Waiting for ${G.players.find((p) => p.id === pending.playerId)?.name} to ${
           pending.kind === 'discardInventory' ? 'choose cards to discard' : pending.kind === 'arrangeExpedition' ? 'arrange the Expedition deck' : 'choose a structure to attack'
@@ -98,6 +101,12 @@ export function Board({ G, moves, playerID, matchData }: Props) {
         </div>
       </div>
 
+      {ended && (
+        <div className="banner">
+          <h2>Game over</h2>
+          <p>The admin ended this game.</p>
+        </div>
+      )}
       {winner && (
         <div className="banner">
           <h2>{winner.id === playerID ? 'You win!' : `${winner.name} wins`}</h2>

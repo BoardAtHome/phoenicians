@@ -1,6 +1,7 @@
 export * from './config/types';
 export { baselineConfig } from './config/baseline';
 export { validateConfig } from './config/validate';
+export { diffConfig } from './config/diff';
 export * from './state';
 export { createRng, shuffle, type Rng } from './rng';
 export { setupGame, SetupError, type Seat } from './setup';
