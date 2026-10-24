@@ -14,8 +14,8 @@ Build plan: https://claude.ai/artifact/JbxDULF9rQZxcRn6jXE6xA
 - [x] Rituals: draw a curse, ritual count, hand limit, curse deck reshuffle
 - [x] Divine Coins: buy, guess (public), elimination, last player standing
 - [x] Prophecy replacement helper for Prophecy Disruption
-- [ ] Tests
-- [ ] Open PR
+- [x] Tests (80 total, incl. the rulebook Warlord example)
+- [x] Open PR (awaiting merge)
 
 ## Next milestones
 
