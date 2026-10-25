@@ -15,6 +15,7 @@ export function MatchPage({ matchID }: { matchID: string }) {
   const [copied, setCopied] = useState(false);
   // Bumped to reconnect from scratch when the server stops answering this device's moves.
   const [connection, setConnection] = useState(0);
+  const seated = seat !== null;
 
   useEffect(() => {
     let live = true;
@@ -24,12 +25,13 @@ export function MatchPage({ matchID }: { matchID: string }) {
         .then((m) => live && setMatch(m))
         .catch(() => live && setError('This game does not exist. It may have ended when the server restarted.'));
     load();
-    const timer = setInterval(load, 3000);
+    // Refresh the seat list while picking a seat. Once playing, the game connection keeps it current.
+    const timer = seated ? undefined : setInterval(load, 3000);
     return () => {
       live = false;
       clearInterval(timer);
     };
-  }, [matchID]);
+  }, [matchID, seated]);
 
   if (error) return <section className="panel narrow"><p className="error">{error}</p></section>;
   if (!match) return <section className="panel narrow"><p className="muted">Loading…</p></section>;

@@ -8,6 +8,17 @@ Every pull request that changes the app adds an entry here and bumps `version` i
 root `package.json` to match (see "Releasing a build" in `PROGRESS.md`). The newest
 entry is the build that goes live once the PR is merged and deployed.
 
+## 0.11.1 — No more lag and disconnects as a game goes on
+
+_25 Oct 2026 · PR #14_
+
+- Games no longer slow down the longer they run. The server was keeping a full copy of the
+  table for every move ever made in a match, so after a few rounds of drawing each tap took
+  seconds and phones dropped their connection. Moves now take the same short time on the first
+  turn and the fiftieth. Games already in progress shrink back on their next move.
+- Fewer requests to the server while you play: the game page stops checking the seat list
+  once you have picked your seat.
+
 ## 0.11.0 — End games you've stopped playing
 
 _25 Oct 2026 · PR #13_

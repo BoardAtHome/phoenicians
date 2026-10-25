@@ -74,12 +74,14 @@ export class PostgresMatchStore extends Async {
   }
 
   async fetch<O extends StorageAPI.FetchOpts>(matchID: string, opts: O): Promise<StorageAPI.FetchResult<O>> {
-    const { rows } = await this.pool.query<MatchRow>(
-      'SELECT state, initial_state, metadata, log FROM phoenicians_matches WHERE match_id = $1',
-      [matchID],
+    // Only the columns asked for: most fetches (every move, lobby polls) want just the metadata or the state.
+    const columns = (['state', 'initial_state', 'metadata', 'log'] as const).filter(
+      (c) => opts[c === 'initial_state' ? 'initialState' : c],
     );
-    const row = rows[0];
     const result: Partial<StorageAPI.FetchFields> = {};
+    if (columns.length === 0) return result as StorageAPI.FetchResult<O>;
+    const { rows } = await this.pool.query<MatchRow>(`SELECT ${columns.join(', ')} FROM phoenicians_matches WHERE match_id = $1`, [matchID]);
+    const row = rows[0];
     if (!row) return result as StorageAPI.FetchResult<O>;
     if (opts.state) result.state = row.state;
     if (opts.initialState) result.initialState = row.initial_state;
