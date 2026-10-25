@@ -6,6 +6,7 @@ import {
   burdenCount,
   canPlayInWindow,
   sabotageCount,
+  theftBlockedReason,
   topEntry,
   type CurseCard,
   type CurseTarget,
@@ -58,11 +59,11 @@ export function CursesSheet({ G, turn, onClose, onPlay, onHelp }: { G: PlayerVie
         REACTIVE_CURSES.has(c.curseId) ? (
           <CurseCardView key={c.id} G={G} curseId={c.curseId} note={`${curseWhen(c.curseId)} We'll ask you then.`} />
         ) : (
-          <CurseCardView key={c.id} G={G} curseId={c.curseId}>
+          <CurseCardView key={c.id} G={G} curseId={c.curseId} note={theftBlockedReason(G, me.id, c.curseId) ?? undefined}>
             <button
               type="button"
               className="primary"
-              disabled={!canPlay}
+              disabled={!canPlay || !!theftBlockedReason(G, me.id, c.curseId)}
               onClick={() => {
                 if (needsTargets(c.curseId)) onPlay(c);
                 else {
@@ -137,6 +138,8 @@ export function CursePlaySheet({ G, me, card, onPlay, onBack }: { G: PlayerViewS
   if (fields.includes('resource') && !target.resource) ready = false;
   if (fields.includes('exchange') && (!target.give || !target.take)) ready = false;
   if (fields.includes('structures') && (target.structureCardIds?.length ?? 0) !== sabotage) ready = false;
+  const blocked = theftBlockedReason(G, me.id, card.curseId, target.playerId);
+  if (blocked) ready = false;
 
   return (
     <Sheet title={`Play ${curse.name}`} subtitle={curseEffect(G.config, curse)} onClose={onBack}>
@@ -200,6 +203,7 @@ export function CursePlaySheet({ G, me, card, onPlay, onBack }: { G: PlayerViewS
       {card.curseId === 'structural-burden' && chosen && (
         <p className="small muted">{chosen.name} will discard {burdenCount(G, chosen)} card(s) of their choice.</p>
       )}
+      {blocked && <p className="small hint">{blocked}</p>}
       <button type="button" className="big primary" disabled={!ready} onClick={() => onPlay(target)}>
         <Icon name="curse" /> Play {curse.name}
       </button>
@@ -245,7 +249,7 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
   const canRespond = !!me && window.eligible.includes(me.id) && !window.passed.includes(me.id);
   // One button per kind of Curse, even when holding several copies.
   const usable = canRespond
-    ? me!.curseHand.filter((c, i, hand) => canPlayInWindow(G, me!.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i)
+    ? me!.curseHand.filter((c, i, hand) => canPlayInWindow(G, me!.id, c.curseId) && !theftBlockedReason(G, me!.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i)
     : [];
   const card = usable.find((c) => c.id === choosing);
   const paused = !!window.heldBy;

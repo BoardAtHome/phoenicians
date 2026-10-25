@@ -55,6 +55,24 @@ function stealRandom(from: Player, to: Player, count: number, rng: Rng): number 
   return stolen;
 }
 
+const hasResources = (p: Player) => inventorySize(p.inventory) > 0;
+
+/**
+ * Why a Curse could not take anything right now, for Curses that steal resources. Lets the client
+ * grey out a Curse that would be used up for nothing; the same checks guard `prepareCurse`.
+ */
+export function theftBlockedReason(state: GameState, playerId: string, curseId: string, targetId?: string): string | null {
+  if (curseId === 'mass-theft') {
+    const others = state.players.filter((p) => p.id !== playerId && !p.eliminated);
+    return others.some(hasResources) ? null : 'No opponent has any resources to steal';
+  }
+  if (curseId === 'petty-theft' && targetId) {
+    const target = getPlayer(state, targetId);
+    return !target || hasResources(target) ? null : `${target.name} has no resources to steal`;
+  }
+  return null;
+}
+
 /** Military Sabotage: how many structures the target loses. */
 export const sabotageCount = (state: GameState, target: Player): number => {
   const per = state.config.curses.find((c) => c.id === 'military-sabotage')?.params.warriorsPerStructure ?? 3;
@@ -108,16 +126,23 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
       break;
     }
     case 'petty-theft':
-      apply = () => void stealRandom(targetPlayer!, player, params.steal ?? 2, rng);
-      break;
-    case 'mass-theft':
-      affects = against(...state.players.filter((p) => !p.eliminated).map((p) => p.id));
+    case 'mass-theft': {
+      const blocked = theftBlockedReason(state, playerId, curse.id, targetPlayer?.id);
+      if (blocked) return no(blocked);
+      const victims = curse.id === 'petty-theft' ? [targetPlayer!] : state.players.filter((p) => p.id !== playerId && !p.eliminated);
+      if (curse.id === 'mass-theft') affects = against(...victims.map((p) => p.id));
+      const count = curse.id === 'petty-theft' ? (params.steal ?? 2) : (params.stealPerOpponent ?? 1);
       apply = () => {
-        for (const other of state.players) {
-          if (other.id !== playerId && !other.eliminated) stealRandom(other, player, params.stealPerOpponent ?? 1, rng);
+        // Logged so the table can see what the Curse took, not just that it was played.
+        const from: Record<string, number> = {};
+        for (const victim of victims) {
+          const stolen = stealRandom(victim, player, count, rng);
+          if (stolen > 0) from[victim.id] = stolen;
         }
+        log(state, 'resourcesStolen', playerId, { curseId: curse.id, from });
       };
       break;
+    }
     case 'divine-foresight': {
       const count = Math.min(params.view ?? 3, state.expeditionDeck.length);
       if (count === 0) return no('The Expedition deck is empty');

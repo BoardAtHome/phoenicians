@@ -79,6 +79,9 @@ Prophecy cheat sheet (https://claude.ai/artifact/HNeYf8tJsikXTvrdVX9Gqj).
 - Forced Conflict: the caster picks Player A and Player B; Player A picks the structure and pays the attack cost.
 - Military Sabotage: the caster picks which structures are destroyed and gets Conqueror credit.
 - Structural Burden: the target picks which cards to discard.
+- Mass Theft and Petty Theft need something to steal: they can't be played when no opponent
+  (or the chosen opponent) holds resources, and they have no effect if that is still true when they
+  resolve. They take from inventories only, not from an expedition in progress (that is Expedition Theft).
 - Extra Expedition on your own turn: another expedition starts when the current one ends.
 - Reactions: after a draw, attack, ritual, Curse, build, Divine Coin or guess, a window opens for
   players holding a Curse they could play right then. Responses are first come, first served;
