@@ -3,11 +3,12 @@ import path from 'node:path';
 import { eventsCsv, gameStats, summaryRow, toCsv, type GameConfig, type GameState } from '@phoenicians/engine';
 import { createPhoenicians, type SetupData } from '@phoenicians/game';
 import type { Server as ServerTypes, State, StorageAPI } from 'boardgame.io';
-import { Server } from 'boardgame.io/server';
+import { Server, SocketIO } from 'boardgame.io/server';
 import serve from 'koa-static';
 import { AdminAuth } from './auth';
 import { ConfigError, type ConfigStore } from './configStore';
 import { HistoryStore, MemoryMatchStore } from './matchStore';
+import { WindowTimers } from './windowTimers';
 
 export interface AppOptions {
   store: ConfigStore;
@@ -53,7 +54,11 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
   });
 
   const matches = new HistoryStore(db ?? new MemoryMatchStore());
-  const server = Server({ games: [game], origins: origins ?? [/.*/], db: matches });
+  const transport = new SocketIO();
+  const server = Server({ games: [game], origins: origins ?? [/.*/], db: matches, transport });
+  // Reaction windows close on the server clock, whether or not any client is around to ask.
+  const windowTimers = new WindowTimers(game, matches, transport);
+  matches.onSave = (matchID, state) => windowTimers.track(matchID, state as State<GameState>);
   const router = server.router;
 
   const admin = (handler: (ctx: Ctx) => Promise<void>) => async (ctx: Ctx) => {
@@ -183,6 +188,7 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
     state.deltalog = [];
     // An undo restores a state the history already holds; anything else becomes a new step that can itself be undone.
     await (undo ? matches.inner : matches).setState(match.matchID, state, []);
+    windowTimers.track(match.matchID, state);
     await matches.setMetadata(match.matchID, { ...match.metadata, gameover: state.ctx.gameover, updatedAt: Date.now() });
     const pubSub = (server.transport as unknown as { pubSub?: { publish: (channel: string, payload: unknown) => void } }).pubSub;
     pubSub?.publish(`MATCH-${match.matchID}`, { type: 'update', args: [match.matchID, state] });
@@ -245,5 +251,5 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
     });
   }
 
-  return server;
+  return Object.assign(server, { windowTimers });
 }

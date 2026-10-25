@@ -13,6 +13,8 @@ export function MatchPage({ matchID }: { matchID: string }) {
   const [error, setError] = useState('');
   const [seat, setSeat] = useState<Seat | null>(() => getSeat(matchID));
   const [copied, setCopied] = useState(false);
+  // Bumped to reconnect from scratch when the server stops answering this device's moves.
+  const [connection, setConnection] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -49,10 +51,12 @@ export function MatchPage({ matchID }: { matchID: string }) {
   if (seat) {
     return (
       <GameClient
+        key={connection}
         matchID={matchID}
         playerID={seat.playerID}
         credentials={seat.credentials}
         inviteLink={link}
+        onStale={() => setConnection((n) => n + 1)}
         onLeave={() => {
           saveSeat(matchID, null);
           setSeat(null);

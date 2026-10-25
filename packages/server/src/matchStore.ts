@@ -68,6 +68,9 @@ export class MemoryMatchStore extends Async {
 export class HistoryStore extends Async {
   private history = new Map<string, State[]>();
 
+  /** Called with every state saved, after it is stored. */
+  onSave: (matchID: string, state: State) => void = () => {};
+
   constructor(readonly inner: StorageAPI.Async, private depth = 30) {
     super();
   }
@@ -86,7 +89,8 @@ export class HistoryStore extends Async {
     list.push(structuredClone(state));
     if (list.length > this.depth) list.shift();
     this.history.set(matchID, list);
-    return this.inner.setState(matchID, state, deltalog);
+    await this.inner.setState(matchID, state, deltalog);
+    this.onSave(matchID, state);
   }
 
   setMetadata(matchID: string, metadata: Server.MatchData) {

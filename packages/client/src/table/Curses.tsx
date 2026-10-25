@@ -231,7 +231,7 @@ function aimedAt(entry: StackEntry, playerId: string): boolean {
 /**
  * Reaction windows. Players who can respond get a prompt (blocking when the action is aimed at them,
  * a banner otherwise); everyone else sees who acted and how many players are still deciding, never who.
- * When the countdown ends, any client asks the server to close the window (the server checks its own clock).
+ * The server closes the window when its own countdown ends. Clients still ask once theirs reaches zero, as a fallback.
  */
 export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Turn; moves: Moves }) {
   const { me, send, busy } = turn;

@@ -19,8 +19,8 @@ import './table.css';
 type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | { kind: 'play'; cardId: string } | { kind: 'menu' } | { kind: 'gameOver' } | { kind: 'guide'; tab: GuideTab } | null;
 
 /** The game laid out like a real table: rivals around the edge, the Expedition deck in the middle, your hand at the bottom. */
-export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: BoardProps<PlayerViewState> & { inviteLink?: string; onLeave?: () => void }) {
-  const turn = useTurn({ G, moves, playerID });
+export function Table({ G, moves, playerID, matchData, inviteLink, onLeave, onStale }: BoardProps<PlayerViewState> & { inviteLink?: string; onLeave?: () => void; onStale?: () => void }) {
+  const turn = useTurn({ G, moves, playerID, onStale });
   const { me, active, send, busy, myTurn } = turn;
   const [overlay, setOverlay] = useState<Overlay>(null);
   const close = () => setOverlay(null);
