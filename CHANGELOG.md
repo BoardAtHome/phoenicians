@@ -9,6 +9,18 @@ separately and shown on the in-app Changelog page.
   enough for everyone to see, with who drew it. It stays until someone does
   something new. Calamities show their name, and a stamp when they were ignored
   (first card) or stopped.
+- "How to play" guide, from the ? button at the top of the table or the game menu,
+  with tabs for the basics of a turn, every Prophecy (goal, Banked or Hold, how to get
+  there), Market buildings by kind, every Curse (what it does and when it can be
+  played), Calamities and resources.
+- Descriptions where you need them: each Market building says which Prophecies it
+  counts toward; Curse cards in your hand, reaction prompts and target pickers explain
+  what the Curse does and when it is offered; the Actions sheet explains each action;
+  Guess a Prophecy shows each Prophecy's goal; your peeked Prophecy shows its goal and
+  how to reach it; a Calamity in the middle of the table says what it does; resource
+  tiles, structures, Curses and Divine Coins have hover tips.
+- Every number in the helper text comes from the game's live config, so it follows the
+  admin's changes. Curse card text the admin rewrote is shown as written.
 
 ## 0.7.0 — Table layout
 

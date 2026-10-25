@@ -45,6 +45,22 @@ keep the current look (colors, fonts, panels), and take liberties where the mock
       (window closed, Calamity resolved, expedition ended, next turn started, extra expedition).
       The deck shrinks beside it when the middle is narrow (container query).
 
+## Helper text for new players (branch `claude/project-thread-me1sw1`)
+
+Jamil asked for descriptions everywhere a new player might need them. Wording for Prophecies follows the
+Prophecy cheat sheet (https://claude.ai/artifact/HNeYf8tJsikXTvrdVX9Gqj).
+
+- [x] `client/src/help.ts`: every description built from the live config (Prophecy goals and how-tos,
+      which Prophecies a building counts toward, Curse effects from their params and when they can be played,
+      Calamity effects, what each resource pays for, action blurbs, win rule). Curse text the admin edited
+      away from the baseline is shown as written instead of the generated text.
+- [x] `table/Guide.tsx`: "How to play" sheet with tabs, opened from the ? at the top right, the game menu,
+      and "?" links in the Market, Actions, Guess and Curses sheets (`HelpLink` in `Sheet.tsx`).
+- [x] Inline text in Market rows, Curse cards and pickers, Actions, Guess, Prophecy peek, Center Calamity
+      alert, Foresight, Structural Burden discard; hover tips on resource tiles, structures, Curses, coins.
+- [x] Browser-checked on phone and desktop.
+- [ ] PR review and merge
+
 ## After milestone 7
 
 - Deploy on Render (DEPLOY.md). The free database is deleted after 30 days, so upgrade it (about $6/month).

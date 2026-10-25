@@ -231,3 +231,15 @@ button.curse-response:hover:not(:disabled) .curse-card { background: var(--panel
 .seat-row .seat-card.narrow .chip { width: 14px; height: 14px; }
 .seat-row .seat-card.narrow .chip .icon { width: 10px; height: 10px; }
 .seat-row .seat-card { width: 100%; }
+
+/* Helper text: the How to play guide and "?" links. */
+.top-right { display: inline-flex; align-items: center; gap: 8px; }
+.help-link { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 4px 0; border: none; background: none; color: var(--accent); font-size: 13px; font-weight: 600; }
+.guide-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; flex: none; }
+.guide-tabs button { padding: 6px 12px; font-size: 13px; white-space: nowrap; border-radius: 999px !important; background: var(--bg); }
+.guide-tabs button.selected { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.guide-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: var(--line); color: var(--text); vertical-align: middle; }
+.row-card.slim { padding: 6px 10px; margin-top: 4px; }
+.guide { display: flex; flex-direction: column; gap: 8px; }
+.guide p { margin: 0; }

@@ -6,6 +6,7 @@ import { ActionsSheet, GuessSheet } from './Actions';
 import { Center } from './Center';
 import { CursePlaySheet, CursesSheet, DiscardSheet, ForcedAttackSheet, ForesightSheet, ReactionLayer } from './Curses';
 import { Dock } from './Dock';
+import { GuideSheet, type GuideTab } from './Guide';
 import { Icon } from './Icon';
 import { MarketSheet } from './Market';
 import { GameOverSheet, MenuSheet } from './Menu';
@@ -15,7 +16,7 @@ import { lastIndex, seatColor, seating, useTurn } from './useTurn';
 import { VillageSheet } from './Village';
 import './table.css';
 
-type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | { kind: 'play'; cardId: string } | { kind: 'menu' } | { kind: 'gameOver' } | null;
+type Overlay = { kind: 'village'; playerId: string } | { kind: 'log' } | { kind: 'curses' } | { kind: 'actions' } | { kind: 'market' } | { kind: 'guess' } | { kind: 'play'; cardId: string } | { kind: 'menu' } | { kind: 'gameOver' } | { kind: 'guide'; tab: GuideTab } | null;
 
 /** The game laid out like a real table: rivals around the edge, the Expedition deck in the middle, your hand at the bottom. */
 export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: BoardProps<PlayerViewState> & { inviteLink?: string; onLeave?: () => void }) {
@@ -23,6 +24,7 @@ export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: Bo
   const { me, active, send, busy, myTurn } = turn;
   const [overlay, setOverlay] = useState<Overlay>(null);
   const close = () => setOverlay(null);
+  const help = (tab: GuideTab) => setOverlay({ kind: 'guide', tab });
   // Attack mode: rivals' seats are ringed until you pick one or cancel.
   const [attacking, setAttacking] = useState(false);
   useEffect(() => {
@@ -83,7 +85,12 @@ export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: Bo
           <span className="dot on" style={{ background: seatColor(G, active.id) }} />
           {turnText}
         </span>
-        <span className="muted small">T{G.turn.number}</span>
+        <span className="top-right">
+          <span className="muted small">T{G.turn.number}</span>
+          <button type="button" className="round-btn" onClick={() => help('Basics')} aria-label="How to play" title="How to play">
+            <Icon name="help" />
+          </button>
+        </span>
       </div>
 
       {attacking ? (
@@ -134,7 +141,7 @@ export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: Bo
           onClose={close}
         />
       )}
-      {overlay?.kind === 'market' && <MarketSheet G={G} turn={turn} onClose={close} />}
+      {overlay?.kind === 'market' && <MarketSheet G={G} turn={turn} onClose={close} onHelp={() => help('Market')} />}
       {overlay?.kind === 'actions' && (
         <ActionsSheet
           G={G}
@@ -145,12 +152,14 @@ export function Table({ G, moves, playerID, matchData, inviteLink, onLeave }: Bo
             setAttacking(true);
           }}
           onGuess={() => setOverlay({ kind: 'guess' })}
+          onHelp={() => help('Basics')}
         />
       )}
-      {overlay?.kind === 'guess' && <GuessSheet G={G} turn={turn} onClose={close} />}
-      {overlay?.kind === 'menu' && <MenuSheet G={G} inviteLink={inviteLink} onLeave={onLeave} onLog={() => setOverlay({ kind: 'log' })} onClose={close} />}
+      {overlay?.kind === 'guess' && <GuessSheet G={G} turn={turn} onClose={close} onHelp={() => help('Prophecies')} />}
+      {overlay?.kind === 'menu' && <MenuSheet G={G} inviteLink={inviteLink} onLeave={onLeave} onLog={() => setOverlay({ kind: 'log' })} onGuide={() => help('Basics')} onClose={close} />}
       {overlay?.kind === 'gameOver' && <GameOverSheet G={G} onClose={close} />}
-      {overlay?.kind === 'curses' && <CursesSheet G={G} turn={turn} onClose={close} onPlay={(card) => setOverlay({ kind: 'play', cardId: card.id })} />}
+      {overlay?.kind === 'guide' && <GuideSheet key={overlay.tab} config={G.config} initial={overlay.tab} onClose={close} />}
+      {overlay?.kind === 'curses' && <CursesSheet G={G} turn={turn} onClose={close} onPlay={(card) => setOverlay({ kind: 'play', cardId: card.id })} onHelp={() => help('Curses')} />}
       {overlay?.kind === 'play' && me && playing && (
         <CursePlaySheet
           key={playing.id}

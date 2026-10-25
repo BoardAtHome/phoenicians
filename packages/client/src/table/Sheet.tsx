@@ -44,3 +44,12 @@ export function Sheet({
     </div>
   );
 }
+
+/** A small "?" link, e.g. to open the guide on one tab. */
+export function HelpLink({ onOpen, label = 'How does this work?' }: { onOpen: () => void; label?: string }) {
+  return (
+    <button type="button" className="help-link" onClick={onOpen}>
+      <Icon name="help" size={14} /> {label}
+    </button>
+  );
+}

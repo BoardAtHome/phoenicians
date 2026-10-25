@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { RESOURCES, canAfford, inventoryCounts, inventorySize, type Player } from '@phoenicians/engine';
+import { RESOURCES, canAfford, inventoryCounts, inventorySize, type GameConfig, type Player } from '@phoenicians/engine';
 import { HIDDEN, type PlayerViewState } from '@phoenicians/game';
 import { CATEGORY_LABEL, RESOURCE_LABEL, costText } from '../format';
+import { resourceHelp, structureHelp } from '../help';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 import type { Turn } from './useTurn';
@@ -9,12 +10,12 @@ import type { Turn } from './useTurn';
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** Big resource tiles, as in your dock. */
-export function ResourceTiles({ player, compact }: { player: Player; compact?: boolean }) {
+export function ResourceTiles({ player, compact, config }: { player: Player; compact?: boolean; config?: GameConfig }) {
   const counts = inventoryCounts(player.inventory);
   return (
     <div className={`tiles ${compact ? 'compact' : ''}`}>
       {RESOURCES.map((r) => (
-        <div key={r} className={`tile bg-${r}`}>
+        <div key={r} className={`tile bg-${r}`} title={config ? `${RESOURCE_LABEL[r]}: ${resourceHelp(config, r)}` : RESOURCE_LABEL[r]}>
           <Icon name={r} size={compact ? 14 : 16} />
           <b>{counts[r]}</b>
           {!compact && <span>{RESOURCE_LABEL[r]}</span>}
@@ -44,7 +45,7 @@ export function VillageSheet({ G, player, turn, onClose }: { G: PlayerViewState;
           {revealed && ` Their Prophecy was ${revealed.name}.`}
         </p>
       )}
-      <ResourceTiles player={player} compact />
+      <ResourceTiles player={player} compact config={G.config} />
       <div className="section-label">
         <span>Structures</span>
         <span className="muted">{attackable ? 'Tap one to target it' : 'Visible to everyone'}</span>
@@ -56,6 +57,7 @@ export function VillageSheet({ G, player, turn, onClose }: { G: PlayerViewState;
           {player.structures.map((card) => {
             const s = G.config.structures.find((x) => x.id === card.structureId)!;
             const body = (
+
               <>
                 <span className={`chip round lg bg-${s.category}`}><Icon name={s.category} size={16} /></span>
                 <span className="structure-text">
@@ -66,11 +68,11 @@ export function VillageSheet({ G, player, turn, onClose }: { G: PlayerViewState;
               </>
             );
             return attackable ? (
-              <button key={card.id} type="button" className={`structure ${picked === card.id ? 'selected' : ''}`} onClick={() => setPicked(picked === card.id ? null : card.id)} aria-pressed={picked === card.id}>
+              <button key={card.id} type="button" title={structureHelp(G.config, s)} className={`structure ${picked === card.id ? 'selected' : ''}`} onClick={() => setPicked(picked === card.id ? null : card.id)} aria-pressed={picked === card.id}>
                 {body}
               </button>
             ) : (
-              <div key={card.id} className="structure">{body}</div>
+              <div key={card.id} className="structure" title={structureHelp(G.config, s)}>{body}</div>
             );
           })}
         </div>

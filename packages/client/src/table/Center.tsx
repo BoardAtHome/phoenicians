@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { GameEvent, Resource } from '@phoenicians/engine';
 import type { PlayerViewState } from '@phoenicians/game';
 import { describeEvent, RESOURCE_LABEL } from '../format';
+import { calamityHelp } from '../help';
 import { Icon } from './Icon';
 import { lastIndex, type Turn } from './useTurn';
 
@@ -58,7 +59,7 @@ function RevealedCard({ G, event, outcome }: { G: PlayerViewState; event: GameEv
           ? 'No effect'
           : null;
   return (
-    <div className={`face-card calamity ${stamp ? 'defused' : ''}`}>
+    <div className={`face-card calamity ${stamp ? 'defused' : ''}`} title={calamity ? calamityHelp(calamity) : undefined}>
       <span className="face-kind">Calamity</span>
       <Icon name="alert" size={22} />
       <b>{calamity?.name ?? String(event.data?.calamityId)}</b>
@@ -85,6 +86,7 @@ export function Center({ G, turn }: { G: PlayerViewState; turn: Turn }) {
   const struck = useRecent(G, ['calamityApplied', 'calamityPrevented', 'calamityIgnored'], 4500);
   const revealed = revealedDraw(G);
   const drawer = revealed && G.players.find((p) => p.id === revealed.event.playerId);
+  const calamity = top?.kind === 'calamity' ? G.config.expedition.calamities.find((c) => c.id === top.calamityId) : undefined;
   const calamityName = (id: unknown) => G.config.expedition.calamities.find((c) => c.id === id)?.name ?? String(id);
 
   let below: React.ReactNode;
@@ -101,6 +103,7 @@ export function Center({ G, turn }: { G: PlayerViewState; turn: Turn }) {
         <Icon name="alert" size={18} />
         <strong>Calamity</strong>
         <span className="small">{calamityName(top.calamityId)}</span>
+        {calamity && <span className="small muted">{calamityHelp(calamity)}</span>}
       </div>
     );
   } else if (struck) {

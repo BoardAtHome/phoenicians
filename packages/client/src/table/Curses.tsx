@@ -17,9 +17,10 @@ import {
 import type { PlayerViewState } from '@phoenicians/game';
 import { useCountdown } from './countdown';
 import { CATEGORY_LABEL, RESOURCE_LABEL, describeEntry } from '../format';
+import { calamityHelp, curseEffect, curseWhen } from '../help';
 import { Icon } from './Icon';
 import { Avatar } from './Seat';
-import { Sheet } from './Sheet';
+import { HelpLink, Sheet } from './Sheet';
 import type { Turn } from './useTurn';
 
 type Moves = Record<string, ((...args: unknown[]) => void) | undefined>;
@@ -36,7 +37,7 @@ function CurseCardView({ G, curseId, children, note }: { G: PlayerViewState; cur
         <div>
           <b>{curse.name}</b> <span className="stars">{'★'.repeat(curse.stars)}</span>
         </div>
-        <span className="small">{curse.text}</span>
+        <span className="small">{curseEffect(G.config, curse)}</span>
         {note && <span className="small hint">{note}</span>}
       </div>
       {children}
@@ -45,7 +46,7 @@ function CurseCardView({ G, curseId, children, note }: { G: PlayerViewState; cur
 }
 
 /** Your hand. Ordinary Curses can be played on your turn; reactive ones arrive with reaction windows. */
-export function CursesSheet({ G, turn, onClose, onPlay }: { G: PlayerViewState; turn: Turn; onClose: () => void; onPlay: (card: CurseCard) => void }) {
+export function CursesSheet({ G, turn, onClose, onPlay, onHelp }: { G: PlayerViewState; turn: Turn; onClose: () => void; onPlay: (card: CurseCard) => void; onHelp: () => void }) {
   const { me, canAct, exploring, send } = turn;
   if (!me) return null;
   const canPlay = canAct || exploring;
@@ -55,7 +56,7 @@ export function CursesSheet({ G, turn, onClose, onPlay }: { G: PlayerViewState; 
       {me.curseHand.length === 0 && <p className="muted small">No Curses. Perform a ritual to draw one.</p>}
       {me.curseHand.map((c) =>
         REACTIVE_CURSES.has(c.curseId) ? (
-          <CurseCardView key={c.id} G={G} curseId={c.curseId} note="Reaction · we'll offer it when it applies" />
+          <CurseCardView key={c.id} G={G} curseId={c.curseId} note={`${curseWhen(c.curseId)} We'll ask you then.`} />
         ) : (
           <CurseCardView key={c.id} G={G} curseId={c.curseId}>
             <button
@@ -76,6 +77,7 @@ export function CursesSheet({ G, turn, onClose, onPlay }: { G: PlayerViewState; 
         ),
       )}
       {!canPlay && <p className="muted small">Outside your turn, you'll be offered Curses you can play in a reaction window.</p>}
+      <HelpLink onOpen={onHelp} label="Every Curse and what it does" />
     </Sheet>
   );
 }
@@ -137,7 +139,7 @@ export function CursePlaySheet({ G, me, card, onPlay, onBack }: { G: PlayerViewS
   if (fields.includes('structures') && (target.structureCardIds?.length ?? 0) !== sabotage) ready = false;
 
   return (
-    <Sheet title={`Play ${curse.name}`} subtitle={curse.text} onClose={onBack}>
+    <Sheet title={`Play ${curse.name}`} subtitle={curseEffect(G.config, curse)} onClose={onBack}>
       {(fields.includes('opponent') || fields.includes('player')) && (
         <>
           <div className="section-label"><span>{fields.includes('secondPlayer') ? 'Player A (attacks)' : 'Choose a player'}</span></div>
@@ -302,7 +304,7 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
         {bar}
         <div className="react-chips">
           {usable.map((c) => (
-            <button key={c.id} type="button" className="primary chip-btn" disabled={busy} title={curseOf(G, c.curseId).text} onClick={() => play(c)}>
+            <button key={c.id} type="button" className="primary chip-btn" disabled={busy} title={curseEffect(G.config, curseOf(G, c.curseId))} onClick={() => play(c)}>
               {curseOf(G, c.curseId).name} <span className="stars">{'★'.repeat(curseOf(G, c.curseId).stars)}</span>
             </button>
           ))}
@@ -351,7 +353,7 @@ export function ForesightSheet({ G, turn }: { G: PlayerViewState; turn: Turn }) 
             )}
             <span className="row-main">
               <b>{card.type === 'resource' ? RESOURCE_LABEL[card.resource] : 'Calamity'}</b>
-              {card.type !== 'resource' && <span className="small">{G.config.expedition.calamities.find((c) => c.id === card.calamityId)?.name}</span>}
+              {card.type !== 'resource' && <CalamityText G={G} calamityId={card.calamityId} />}
             </span>
             <button type="button" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">↑</button>
             <button type="button" disabled={i === order.length - 1} onClick={() => move(i, 1)} aria-label="Move down">↓</button>
@@ -365,6 +367,22 @@ export function ForesightSheet({ G, turn }: { G: PlayerViewState; turn: Turn }) 
   );
 }
 
+function CalamityText({ G, calamityId }: { G: PlayerViewState; calamityId: string }) {
+  const calamity = G.config.expedition.calamities.find((c) => c.id === calamityId);
+  if (!calamity) return null;
+  return (
+    <>
+      <span className="small">{calamity.name}</span>
+      <span className="small muted">{calamityHelp(calamity)}</span>
+    </>
+  );
+}
+
+const burdenPer = (G: PlayerViewState) => {
+  const n = G.config.curses.find((c) => c.id === 'structural-burden')?.params.discardPerStructure ?? 1;
+  return n === 1 ? 'one card' : `${n} cards`;
+};
+
 const emptySelection = (): ResourceMap => ({ buildingMaterials: 0, warriors: 0, grain: 0, purpleDye: 0 });
 
 /** A Calamity or Structural Burden: the affected player picks which inventory cards to discard. */
@@ -377,7 +395,7 @@ export function DiscardSheet({ G, turn, me }: { G: PlayerViewState; turn: Turn; 
   const source =
     pending.source.type === 'calamity'
       ? `Calamity: ${G.config.expedition.calamities.find((c) => c.id === (pending.source as { calamityId: string }).calamityId)?.name}`
-      : 'Structural Burden: one card per structure you own.';
+      : `Structural Burden: ${burdenPer(G)} per structure you own.`;
   return (
     <Sheet title={`Discard ${pending.count} cards`} subtitle={source}>
       <div className="steppers-grid">
