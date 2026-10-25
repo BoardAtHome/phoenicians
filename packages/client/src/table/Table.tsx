@@ -156,7 +156,7 @@ export function Table({ G, moves, playerID, matchData, inviteLink, onLeave, onSt
         />
       )}
       {overlay?.kind === 'guess' && <GuessSheet G={G} turn={turn} onClose={close} onHelp={() => help('Prophecies')} />}
-      {overlay?.kind === 'menu' && <MenuSheet G={G} inviteLink={inviteLink} onLeave={onLeave} onLog={() => setOverlay({ kind: 'log' })} onGuide={() => help('Basics')} onClose={close} />}
+      {overlay?.kind === 'menu' && <MenuSheet G={G} inviteLink={inviteLink} onLeave={onLeave} onEnd={me ? () => send('endGame') : undefined} onLog={() => setOverlay({ kind: 'log' })} onGuide={() => help('Basics')} onClose={close} />}
       {overlay?.kind === 'gameOver' && <GameOverSheet G={G} onClose={close} />}
       {overlay?.kind === 'guide' && <GuideSheet key={overlay.tab} config={G.config} initial={overlay.tab} onClose={close} />}
       {overlay?.kind === 'curses' && <CursesSheet G={G} turn={turn} onClose={close} onPlay={(card) => setOverlay({ kind: 'play', cardId: card.id })} onHelp={() => help('Curses')} />}

@@ -5,6 +5,24 @@ import { Link } from '../../App';
 import { CATEGORY_LABEL, describeEvent } from '../../format';
 
 const PHASE: Record<string, string> = { action: 'Actions', expedition: 'Expedition', gameOver: 'Finished' };
+const IDLE_CHOICES = [1, 3, 12, 24, 72];
+
+/** "Ana won", "Ended by Ben", or whose turn it is and in which phase. */
+function stateText(m: MatchSummary) {
+  if (m.phase !== 'gameOver') return `${m.activePlayer}: ${PHASE[m.phase] ?? m.phase}`;
+  if (m.winner) return `${m.winner} won`;
+  if (m.endedBy === 'idle') return 'Ended (inactive)';
+  return m.endedBy && m.endedBy !== 'admin' ? `Ended by ${m.endedBy}` : 'Ended by admin';
+}
+
+/** "5 min ago", "3 h ago", "2 days ago". */
+function ago(ms: number) {
+  const minutes = Math.round((Date.now() - ms) / 60000);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 48 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`;
+}
+
 const OUTCOME: Record<string, string> = {
   won: 'Won',
   replaced: 'Replaced',
@@ -16,19 +34,58 @@ const OUTCOME: Record<string, string> = {
 /** Every match on the server, with stats, downloads and controls for stuck games. */
 export function Matches() {
   const [matches, setMatches] = useState<MatchSummary[] | null>(null);
+  const [idleHours, setIdleHours] = useState(0);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const [showFinished, setShowFinished] = useState(false);
+  const [idleChoice, setIdleChoice] = useState(3);
 
   const refresh = () =>
     api
       .matches()
-      .then((m) => setMatches(m.matches))
+      .then((m) => {
+        setMatches(m.matches);
+        setIdleHours(m.idleHours);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not load matches'));
+
+  async function act(action: () => Promise<string>) {
+    setError('');
+    setMessage('');
+    try {
+      setMessage(await action());
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    }
+  }
+  const endOne = (m: MatchSummary) =>
+    window.confirm(`End the game with ${m.players.map((p) => p.name).join(', ')} for everyone? No one wins. Its log and stats are kept.`) &&
+    void act(async () => {
+      await api.endMatch(m.matchID);
+      return 'The game has ended.';
+    });
+  const endIdle = () => {
+    const idle = (matches ?? []).filter((m) => m.phase !== 'gameOver' && Date.now() - m.updatedAt > idleChoice * 3_600_000);
+    if (idle.length === 0) {
+      setError('');
+      setMessage(`No game in progress has gone ${idleChoice} h without a move.`);
+      return;
+    }
+    if (!window.confirm(`End ${idle.length} game${idle.length === 1 ? '' : 's'} with no moves for ${idleChoice} hours? Their logs and stats are kept.`)) return;
+    void act(async () => {
+      const { ended } = await api.endIdleMatches(idleChoice);
+      return `Ended ${ended.length} game${ended.length === 1 ? '' : 's'}.`;
+    });
+  };
   useEffect(() => {
     void refresh();
   }, []);
 
   if (!matches) return <section className="panel">{error ? <p className="error">{error}</p> : <p className="muted">Loading…</p>}</section>;
+  const inProgress = matches.filter((m) => m.phase !== 'gameOver');
+  const shown = showFinished ? matches : inProgress;
 
   return (
     <div className="stack">
@@ -43,23 +100,47 @@ export function Matches() {
           </div>
         </div>
         <p className="muted small">One row per game, for comparing configs in a spreadsheet. Open a match for its stats, full log and controls.</p>
+        <div className="row">
+          <span>End games in progress with no moves for</span>
+          <select value={idleChoice} onChange={(e) => setIdleChoice(Number(e.target.value))}>
+            {IDLE_CHOICES.map((h) => <option key={h} value={h}>{h} h</option>)}
+          </select>
+          <button className="danger" disabled={inProgress.length === 0} onClick={endIdle}>End idle games</button>
+        </div>
+        <p className="muted small">
+          {idleHours > 0
+            ? `Games with no moves for ${idleHours} hours also end by themselves.`
+            : 'Games never end by themselves: IDLE_MATCH_HOURS is set to 0 on the server.'}{' '}
+          Players can end their own game from the game menu. Ended games keep their log and stats.
+        </p>
+        {message && <p className="success">{message}</p>}
         {error && <p className="error">{error}</p>}
-        {matches.length === 0 && <p className="muted">No matches yet.</p>}
-        <table className="form-table matches">
-          <thead><tr><th>Started</th><th>Players</th><th>Turn</th><th>State</th><th>Config</th><th /></tr></thead>
-          <tbody>
-            {matches.map((m) => (
-              <tr key={m.matchID} className={open === m.matchID ? 'selected' : ''}>
-                <td className="small">{new Date(m.createdAt).toLocaleString()}</td>
-                <td>{m.players.map((p) => p.name).join(', ')}</td>
-                <td>{m.turn}</td>
-                <td>{m.phase === 'gameOver' ? (m.winner ? `${m.winner} won` : 'Ended') : `${m.activePlayer}: ${PHASE[m.phase] ?? m.phase}`}</td>
-                <td className="small">{m.configVersion} · {m.build}</td>
-                <td><button onClick={() => setOpen(open === m.matchID ? null : m.matchID)}>{open === m.matchID ? 'Close' : 'Open'}</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <label className="radio">
+          <input type="checkbox" checked={showFinished} onChange={(e) => setShowFinished(e.target.checked)} />
+          Show finished games ({matches.length - inProgress.length})
+        </label>
+        {shown.length === 0 && <p className="muted">{matches.length === 0 ? 'No matches yet.' : 'No games in progress.'}</p>}
+        {shown.length > 0 && (
+          <table className="form-table matches">
+            <thead><tr><th>Started</th><th>Players</th><th>Turn</th><th>State</th><th>Last move</th><th>Config</th><th /></tr></thead>
+            <tbody>
+              {shown.map((m) => (
+                <tr key={m.matchID} className={open === m.matchID ? 'selected' : ''}>
+                  <td className="small">{new Date(m.createdAt).toLocaleString()}</td>
+                  <td>{m.players.map((p) => p.name).join(', ')}</td>
+                  <td>{m.turn}</td>
+                  <td>{stateText(m)}</td>
+                  <td className="small">{ago(m.updatedAt)}</td>
+                  <td className="small">{m.configVersion} · {m.build}</td>
+                  <td className="nowrap">
+                    <button onClick={() => setOpen(open === m.matchID ? null : m.matchID)}>{open === m.matchID ? 'Close' : 'Open'}</button>
+                    {m.phase !== 'gameOver' && <button className="danger" onClick={() => endOne(m)}>End</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
       {open && <MatchDetails key={open} matchID={open} onChange={refresh} />}
     </div>
@@ -113,7 +194,7 @@ function MatchDetails({ matchID, onChange }: { matchID: string; onChange: () => 
         <button
           className="danger"
           disabled={over}
-          onClick={() => window.confirm('End this match for everyone? It cannot be resumed (but Undo can bring it back).') && void act(() => api.endMatch(matchID), 'The match has ended.')}
+          onClick={() => window.confirm('End this match for everyone? No one wins. Its log and stats are kept, and Undo can bring it back.') && void act(() => api.endMatch(matchID), 'The match has ended.')}
         >
           End match
         </button>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildStructure, drawExpeditionCard, endActionPhase, eventsCsv, gameStats, guessProphecy, playCurse, stopExpedition, summaryRow } from '../src';
+import { buildStructure, drawExpeditionCard, endActionPhase, endMatch, eventsCsv, gameStats, guessProphecy, playCurse, stopExpedition, summaryRow } from '../src';
 import { cal, give, newGame, passTurn, res, rng, stackDeck } from './helpers';
 
 describe('game stats', () => {
@@ -62,5 +62,25 @@ describe('game stats', () => {
     expect(csv[0]).toBe('seq,time,turn,type,player,private,details');
     expect(csv).toHaveLength(state.log.length + 1);
     expect(summaryRow('m1', gameStats(state))).toMatchObject({ match: 'm1', players: 3, expeditions: 1, finished: false });
+  });
+});
+
+describe('ending a game early', () => {
+  it('ends the game without a winner and says who ended it', () => {
+    const state = newGame();
+    endActionPhase(state, 'p0');
+    expect(endMatch(state, 'p1')).toEqual({ ok: true });
+    expect(state.turn.phase).toBe('gameOver');
+    expect(state.winnerId).toBeFalsy();
+    expect(state.log.at(-1)).toMatchObject({ type: 'matchEnded', playerId: 'p1', data: { by: 'p1' } });
+    expect(gameStats(state).summary).toMatchObject({ finished: true, winner: null, reason: 'ended by Player 1' });
+    expect(endMatch(state, 'admin').ok).toBe(false);
+  });
+
+  it('only lets players in the game, the admin or the idle timer end it', () => {
+    const state = newGame();
+    expect(endMatch(state, 'p9').ok).toBe(false);
+    expect(endMatch(state, 'idle').ok).toBe(true);
+    expect(gameStats(state).summary.reason).toBe('ended by inactivity');
   });
 });

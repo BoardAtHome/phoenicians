@@ -86,6 +86,8 @@ export interface MatchSummary {
   phase: string;
   activePlayer?: string;
   winner: string | null;
+  /** Set when the game ended without a winner: 'admin', 'idle' (no moves for too long) or a player's name. */
+  endedBy: string | null;
   configVersion: string;
   build: string;
   undoDepth: number;
@@ -123,9 +125,10 @@ export const api = {
   activate: (versionId: number) => request<{ active: number }>('POST', '/api/admin/activate', { versionId }, true),
   draftToken: () => request<{ token: string }>('POST', '/api/admin/draft-token', {}, true),
   versionConfig: (id: number) => request<VersionSummary & { config: GameConfig }>('GET', `/api/versions/${id}`),
-  matches: () => request<{ matches: MatchSummary[] }>('GET', '/api/admin/matches', undefined, true),
+  matches: () => request<{ matches: MatchSummary[]; idleHours: number }>('GET', '/api/admin/matches', undefined, true),
   match: (id: string) => request<MatchDetail>('GET', `/api/admin/matches/${id}`, undefined, true),
   endMatch: (id: string) => request<{ summary: MatchSummary }>('POST', `/api/admin/matches/${id}/end`, {}, true),
+  endIdleMatches: (hours: number) => request<{ ended: string[] }>('POST', '/api/admin/matches/end-idle', { hours }, true),
   undoMatch: (id: string) => request<{ summary: MatchSummary }>('POST', `/api/admin/matches/${id}/undo`, {}, true),
   downloadLog: (id: string) => download(`/api/admin/matches/${id}/log.csv`, `phoenicians-${id}-log.csv`),
   downloadJson: (id: string) => download(`/api/admin/matches/${id}/export.json`, `phoenicians-${id}.json`),

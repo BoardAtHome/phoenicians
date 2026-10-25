@@ -8,7 +8,7 @@ import { Sheet } from './Sheet';
 import { lastIndex } from './useTurn';
 
 /** Invite link, leave seat, the activity log, and what version of the rules this game uses. */
-export function MenuSheet({ G, inviteLink, onLeave, onLog, onGuide, onClose }: { G: PlayerViewState; inviteLink?: string; onLeave?: () => void; onLog: () => void; onGuide: () => void; onClose: () => void }) {
+export function MenuSheet({ G, inviteLink, onLeave, onEnd, onLog, onGuide, onClose }: { G: PlayerViewState; inviteLink?: string; onLeave?: () => void; onEnd?: () => void; onLog: () => void; onGuide: () => void; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   return (
     <Sheet title="Game menu" onClose={onClose}>
@@ -40,6 +40,18 @@ export function MenuSheet({ G, inviteLink, onLeave, onLog, onGuide, onClose }: {
           Leave seat
         </button>
       )}
+      {onEnd && G.turn.phase !== 'gameOver' && (
+        <>
+          <button
+            type="button"
+            className="big danger-btn"
+            onClick={() => window.confirm('End this game for everyone? No one wins and it cannot be resumed.') && onEnd()}
+          >
+            End game for everyone
+          </button>
+          <p className="small muted">For a game you've stopped playing. The game's record is kept for the admin's stats.</p>
+        </>
+      )}
     </Sheet>
   );
 }
@@ -47,7 +59,7 @@ export function MenuSheet({ G, inviteLink, onLeave, onLog, onGuide, onClose }: {
 /** The winner, and every Prophecy revealed. */
 export function GameOverSheet({ G, onClose }: { G: PlayerViewState; onClose: () => void }) {
   const winner = G.players.find((p) => p.id === G.winnerId);
-  const won = lastIndex(G.log, (e) => e.type === 'gameWon');
+  const won = lastIndex(G.log, (e) => e.type === 'gameWon' || e.type === 'matchEnded');
   return (
     <Sheet title={winner ? `${winner.name} wins` : 'Game over'} subtitle={won >= 0 ? describeEvent(G, G.log[won]!) : 'The admin ended this game.'} onClose={onClose}>
       <div className="section-label"><span>Prophecies</span></div>

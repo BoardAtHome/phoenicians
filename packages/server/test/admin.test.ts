@@ -67,12 +67,60 @@ describe('admin match tools', () => {
 
     expect((await call('POST', `/api/admin/matches/${matchID}/end`)).status).toBe(200);
     await until(() => G()!.turn.phase === 'gameOver');
-    expect(client.getState()!.ctx.gameover).toEqual({ endedByAdmin: true });
+    expect(client.getState()!.ctx.gameover).toEqual({ endedBy: 'admin' });
+    expect((await call('GET', '/api/admin/matches')).json.matches[0]).toMatchObject({ matchID, phase: 'gameOver', endedBy: 'admin' });
+    expect((await call('POST', `/api/admin/matches/${matchID}/end`)).status).toBe(400);
+    // The log and stats are kept.
+    expect((await call('GET', `/api/admin/matches/${matchID}`)).json.stats.summary).toMatchObject({ finished: true, reason: 'ended by admin' });
     client.stop();
+  });
+
+  it('ends the games that have gone a while without a move', async () => {
+    const create = async () => (await call('POST', '/games/phoenicians/create', { numPlayers: 3, setupData: { names: ['Ana', 'Ben', 'Cy'], firstPlayer: '0' } })).json.matchID as string;
+    const first = await create();
+    await new Promise((r) => setTimeout(r, 400));
+    const second = await create();
+    // A cutoff between the two: only the first is idle long enough.
+    const res = await call('POST', '/api/admin/matches/end-idle', { hours: 200 / 3_600_000 });
+    expect(res.json.ended).toContain(first);
+    expect(res.json.ended).not.toContain(second);
+    const list = (await call('GET', '/api/admin/matches')).json.matches as { matchID: string; phase: string }[];
+    expect(list.find((m) => m.matchID === first)?.phase).toBe('gameOver');
+    expect(list.find((m) => m.matchID === second)?.phase).toBe('action');
+    expect((await call('POST', '/api/admin/matches/end-idle', { hours: 'soon' })).status).toBe(400);
   });
 
   it('requires the admin password', async () => {
     const res = await fetch(`${base}/api/admin/matches`);
     expect(res.status).toBe(401);
+  });
+});
+
+describe('idle games', () => {
+  it('end by themselves after the configured time, and players see it', async () => {
+    const store = await ConfigStore.open(memoryPersistence(), 'test');
+    const server = createApp({ store, adminPassword: 'pw', build: 'test', idleHours: 1 / 3_600_000 }); // 1 ms
+    const { appServer } = await server.run(0);
+    const url = `http://localhost:${(appServer.address() as AddressInfo).port}`;
+    try {
+      const created = await fetch(`${url}/games/phoenicians/create`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ numPlayers: 3, setupData: { names: ['Ana', 'Ben', 'Cy'], firstPlayer: '0' } }),
+      });
+      const { matchID } = (await created.json()) as { matchID: string };
+      const client = Client({ game: Phoenicians, numPlayers: 3, matchID, playerID: '0', multiplayer: SocketIO({ server: url }) });
+      client.start();
+      const G = () => client.getState()?.G as PlayerViewState | undefined;
+      await until(() => !!G());
+      await new Promise((r) => setTimeout(r, 5));
+      server.idleGames.start();
+      await until(() => G()?.turn.phase === 'gameOver');
+      expect(client.getState()!.ctx.gameover).toEqual({ endedBy: 'idle' });
+      client.stop();
+    } finally {
+      server.idleGames.stop();
+      server.kill({ appServer, apiServer: undefined });
+    }
   });
 });

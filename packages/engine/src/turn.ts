@@ -91,3 +91,18 @@ export function declareWinner(state: GameState, playerId: string, reason: 'proph
   const player = state.players.find((p) => p.id === playerId)!;
   log(state, 'gameWon', playerId, { reason, prophecyId: player.prophecyId });
 }
+
+/** Who ended a game early: a player's id, the admin, or the server after the game sat idle. */
+export type EndedBy = string | 'admin' | 'idle';
+
+/** Ends a game without a winner. The log and stats are kept. */
+export function endMatch(state: GameState, by: EndedBy): Result {
+  if (state.turn.phase === 'gameOver') return fail('The game is already over');
+  if (by !== 'admin' && by !== 'idle' && !getPlayer(state, by)) return fail('Only a player in this game can end it');
+  state.turn.phase = 'gameOver';
+  state.stack = [];
+  state.window = null;
+  state.pendingChoice = null;
+  log(state, 'matchEnded', by === 'admin' || by === 'idle' ? undefined : by, { by });
+  return ok;
+}

@@ -91,10 +91,11 @@ export function Center({ G, turn }: { G: PlayerViewState; turn: Turn }) {
 
   let below: React.ReactNode;
   if (G.turn.phase === 'gameOver') {
+    const ending = G.log[lastIndex(G.log, (e) => e.type === 'gameWon' || e.type === 'matchEnded')];
     below = (
       <div className="alert win">
         <strong>{winner ? (winner.id === me?.id ? 'You win!' : `${winner.name} wins`) : 'Game over'}</strong>
-        <span className="small">{winner ? describeEvent(G, G.log[lastIndex(G.log, (e) => e.type === 'gameWon')]!) : 'The admin ended this game.'}</span>
+        <span className="small">{ending ? describeEvent(G, ending) : 'The admin ended this game.'}</span>
       </div>
     );
   } else if (top?.kind === 'calamity' && !top.canceled) {

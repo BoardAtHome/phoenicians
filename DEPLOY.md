@@ -81,6 +81,7 @@ Config versions live in the database and are changed from the admin page.
 | `NODE_VERSION` | 22. |
 | `PORT` | Set by Render. |
 | `BUILD_VERSION` | Optional. Defaults to the version in `package.json`. |
+| `IDLE_MATCH_HOURS` | Optional. Games with no moves for this many hours end by themselves (default 24; `0` turns it off). Checked when the server starts and every 15 minutes while it is awake. |
 
 Change them under the service's **Environment** tab. Saving restarts the service.
 
@@ -96,6 +97,7 @@ service's **Settings > Custom Domains**. Render shows the DNS record to create.
 | Configs or games vanish after a restart | `DATABASE_URL` is missing, or the free database expired. |
 | Build fails | Open the failed deploy's log. Usually it's a failing check or dependency install; the same commit should also be red in GitHub Actions. |
 | A game is stuck | **Admin > Matches and stats > Open**, then **Undo last action** or **End match**. Players see the change at once. |
+| Old games still listed as in progress | Click **End** on the row, or **End idle games** to end every game with no moves for a few hours. Players can also end their own game from the game menu. |
 
 ## Running locally
 
