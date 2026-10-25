@@ -3,6 +3,13 @@
 App builds. Rule and balance changes made through the admin page are versioned
 separately and shown on the in-app Changelog page.
 
+## Unreleased
+
+- The last card drawn from the Expedition deck lies face up next to the deck, big
+  enough for everyone to see, with who drew it. It stays until someone does
+  something new. Calamities show their name, and a stamp when they were ignored
+  (first card) or stopped.
+
 ## 0.7.0 — Table layout
 
 - New game screen laid out like a real table: rivals sit around the edge in turn
