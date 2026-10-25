@@ -21,6 +21,10 @@ separately and shown on the in-app Changelog page.
   tiles, structures, Curses and Divine Coins have hover tips.
 - Every number in the helper text comes from the game's live config, so it follows the
   admin's changes. Curse card text the admin rewrote is shown as written.
+- A Curse can no longer be played when it would have no effect (for example Mass
+  Theft when no opponent holds resources), so it stays in your hand. Its Play button
+  is greyed out with the reason, and target pickers only offer targets it would affect.
+- The activity log now says what a theft Curse took and from whom.
 
 ## 0.7.0 — Table layout
 

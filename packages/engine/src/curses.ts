@@ -1,4 +1,4 @@
-import { RESOURCES } from './config/types';
+import { RESOURCES, type Resource } from './config/types';
 import { destroyStructure, refillShop, startAttack } from './actions';
 import { addToInventory, canAfford, inventorySize, takeFromInventory } from './inventory';
 import { replaceProphecy } from './prophecy';
@@ -55,6 +55,60 @@ function stealRandom(from: Player, to: Player, count: number, rng: Rng): number 
   return stolen;
 }
 
+const hasResources = (p: Player) => inventorySize(p.inventory) > 0;
+
+/**
+ * Why playing this Curse now would do nothing, or null if it would have an effect. A Curse with
+ * no effect can't be played, so it isn't used up for nothing. Targets not chosen yet count as
+ * "any target": the Curse is blocked only if no choice would work. Uses public information only,
+ * so the client can grey Curses out; hidden deck checks stay in `prepareCurse`.
+ */
+export function curseNoEffectReason(state: GameState, playerId: string, curseId: string, target: CurseTarget = {}): string | null {
+  const live = state.players.filter((p) => !p.eliminated);
+  const opponents = live.filter((p) => p.id !== playerId);
+  const chosen = target.playerId ? getPlayer(state, target.playerId) : undefined;
+  const params = state.config.curses.find((c) => c.id === curseId)?.params ?? {};
+  switch (curseId) {
+    case 'resource-exchange': {
+      const count = params.exchange ?? 1;
+      const me = getPlayer(state, playerId)!;
+      const inDiscard = (r: Resource) => state.expeditionDiscard.filter((c) => c.type === 'resource' && c.resource === r).length;
+      if (!RESOURCES.some((r) => me.inventory[r].length >= count)) return `You need ${count} of a resource to give`;
+      if (!RESOURCES.some((r) => inDiscard(r) >= count)) return 'The discard pile has no resources to take';
+      return null;
+    }
+    case 'petty-theft':
+      if (chosen) return hasResources(chosen) ? null : `${chosen.name} has no resources to steal`;
+      return opponents.some(hasResources) ? null : 'No opponent has any resources to steal';
+    case 'mass-theft':
+      return opponents.some(hasResources) ? null : 'No opponent has any resources to steal';
+    case 'resource-purge':
+      if (chosen && target.resource) return chosen.inventory[target.resource].length > 0 ? null : `${chosen.name} has none of that resource`;
+      if (chosen) return hasResources(chosen) ? null : `${chosen.name} has no resources`;
+      return live.some(hasResources) ? null : 'No player has any resources';
+    case 'military-sabotage':
+      if (chosen) return sabotageCount(state, chosen) > 0 ? null : `${chosen.name} has too few Warriors to lose a structure`;
+      return live.some((p) => sabotageCount(state, p) > 0) ? null : 'No player has enough Warriors to lose a structure';
+    case 'structural-burden': {
+      const burdens = (p: Player) => burdenCount(state, p) > 0 && hasResources(p);
+      if (chosen) return burdens(chosen) ? null : `${chosen.name} would discard nothing`;
+      return live.some(burdens) ? null : 'No player would discard anything';
+    }
+    case 'forced-conflict': {
+      const second = target.secondPlayerId ? getPlayer(state, target.secondPlayerId) : undefined;
+      const canAttack = (p: Player) => canAfford(p.inventory, state.config.costs.attack);
+      const attackable = (p: Player, attacker?: Player) => p.id !== attacker?.id && p.structures.length > 0;
+      if (chosen && !canAttack(chosen)) return `${chosen.name} can't afford an attack`;
+      if (second && !attackable(second, chosen)) return `${second.name} has no structures to attack`;
+      const attackers = chosen ? [chosen] : live.filter(canAttack);
+      const ok = attackers.some((a) => (second ? [second] : live).some((b) => attackable(b, a)));
+      return ok ? null : 'No player can afford an attack on someone with structures';
+    }
+    default:
+      return null;
+  }
+}
+
 /** Military Sabotage: how many structures the target loses. */
 export const sabotageCount = (state: GameState, target: Player): number => {
   const per = state.config.curses.find((c) => c.id === 'military-sabotage')?.params.warriorsPerStructure ?? 3;
@@ -90,6 +144,8 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
   }
   const against = (...ids: (string | undefined)[]) => ids.filter((id): id is string => !!id && id !== playerId);
   let affects = against(targetPlayer?.id);
+  const noEffect = curseNoEffectReason(state, playerId, curse.id, target);
+  if (noEffect) return no(noEffect);
 
   let apply: () => void;
   switch (curse.id) {
@@ -108,16 +164,21 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
       break;
     }
     case 'petty-theft':
-      apply = () => void stealRandom(targetPlayer!, player, params.steal ?? 2, rng);
-      break;
-    case 'mass-theft':
-      affects = against(...state.players.filter((p) => !p.eliminated).map((p) => p.id));
+    case 'mass-theft': {
+      const victims = curse.id === 'petty-theft' ? [targetPlayer!] : state.players.filter((p) => p.id !== playerId && !p.eliminated);
+      if (curse.id === 'mass-theft') affects = against(...victims.map((p) => p.id));
+      const count = curse.id === 'petty-theft' ? (params.steal ?? 2) : (params.stealPerOpponent ?? 1);
       apply = () => {
-        for (const other of state.players) {
-          if (other.id !== playerId && !other.eliminated) stealRandom(other, player, params.stealPerOpponent ?? 1, rng);
+        // Logged so the table can see what the Curse took, not just that it was played.
+        const from: Record<string, number> = {};
+        for (const victim of victims) {
+          const stolen = stealRandom(victim, player, count, rng);
+          if (stolen > 0) from[victim.id] = stolen;
         }
+        log(state, 'resourcesStolen', playerId, { curseId: curse.id, from });
       };
       break;
+    }
     case 'divine-foresight': {
       const count = Math.min(params.view ?? 3, state.expeditionDeck.length);
       if (count === 0) return no('The Expedition deck is empty');

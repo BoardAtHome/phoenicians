@@ -110,6 +110,12 @@ export function describeEvent(G: GameState, e: GameEvent): string | null {
       return `${who}'s ${curseName(G, d.curseId)} had no effect (${d.reason}).`;
     case 'curseIntercepted':
       return `${who} intercepted the Curse from ${name(G, d.from)}'s ritual.`;
+    case 'resourcesStolen': {
+      const from = Object.entries((d.from ?? {}) as Record<string, number>);
+      const total = from.reduce((n, [, count]) => n + count, 0);
+      const names = from.map(([id]) => name(G, id)).join(', ');
+      return `${who}'s ${curseName(G, d.curseId)} took ${total} resource${total === 1 ? '' : 's'}${names ? ` from ${names}` : ''}.`;
+    }
     case 'expeditionStolen':
       return `${who} stole ${d.count} card${d.count === 1 ? '' : 's'} from ${name(G, d.from)}'s expedition.`;
     case 'attackCanceled':

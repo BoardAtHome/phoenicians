@@ -79,6 +79,11 @@ Prophecy cheat sheet (https://claude.ai/artifact/HNeYf8tJsikXTvrdVX9Gqj).
 - Forced Conflict: the caster picks Player A and Player B; Player A picks the structure and pays the attack cost.
 - Military Sabotage: the caster picks which structures are destroyed and gets Conqueror credit.
 - Structural Burden: the target picks which cards to discard.
+- A Curse can't be played when it would have no effect (`curseNoEffectReason`): e.g. Mass Theft
+  when no opponent holds resources, Resource Purge on a resource the target lacks, Forced Conflict
+  when Player A can't afford an attack. It stays in hand; if things change before it resolves, it
+  fizzles. Deck-based checks (Divine Foresight, Prophecy Disruption) stay engine-only, since decks
+  are hidden from clients. Theft Curses take from inventories only, not from an expedition in progress.
 - Extra Expedition on your own turn: another expedition starts when the current one ends.
 - Reactions: after a draw, attack, ritual, Curse, build, Divine Coin or guess, a window opens for
   players holding a Curse they could play right then. Responses are first come, first served;

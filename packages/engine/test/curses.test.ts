@@ -6,7 +6,9 @@ import {
   endActionPhase,
   foresightCards,
   inventoryCounts,
+  curseNoEffectReason,
   inventorySize,
+  passWindow,
   playCurse,
   resolveDiscardChoice,
   resolveForcedAttack,
@@ -46,6 +48,7 @@ describe('playing Curses', () => {
   });
 
   it('outside a reaction window, is only allowed on your own turn', () => {
+    give(p1, 'grain', 1);
     expect(cast('mass-theft', {}, 'p1').ok).toBe(false);
     endActionPhase(state, 'p0');
     expect(cast('mass-theft').ok).toBe(true);
@@ -93,6 +96,62 @@ describe('Curse effects', () => {
     give(p2, 'warriors', 2);
     cast('mass-theft');
     expect(inventoryCounts(p0.inventory)).toMatchObject({ grain: 1, warriors: 1 });
+    expect(state.log.at(-1)).toMatchObject({ type: 'resourcesStolen', playerId: 'p0', data: { curseId: 'mass-theft', from: { p1: 1, p2: 1 } } });
+  });
+
+  it('Mass Theft skips opponents with nothing and logs only who lost a card', () => {
+    give(p2, 'grain', 1);
+    expect(cast('mass-theft').ok).toBe(true);
+    expect(inventorySize(p0.inventory)).toBe(1);
+    expect(state.log.at(-1)).toMatchObject({ type: 'resourcesStolen', data: { from: { p2: 1 } } });
+  });
+
+  it('Theft Curses cannot be played when there is nothing to steal, so the card is kept', () => {
+    // Bug report: Mass Theft was used up but gave nothing, since nobody held resources yet.
+    const hand = p0.curseHand.length;
+    expect(cast('mass-theft').ok).toBe(false);
+    expect(cast('petty-theft', { playerId: 'p1' }).ok).toBe(false);
+    expect(p0.curseHand).toHaveLength(hand + 2);
+    expect(state.curseDiscard).toHaveLength(0);
+  });
+
+  it('no Curse can be played when it would have no effect', () => {
+    // Fresh game: nobody holds resources or structures yet.
+    const blocked: [string, CurseTarget][] = [
+      ['resource-exchange', { give: 'grain', take: 'grain' }],
+      ['resource-purge', { playerId: 'p1', resource: 'grain' }],
+      ['military-sabotage', { playerId: 'p1', structureCardIds: [] }],
+      ['structural-burden', { playerId: 'p1' }],
+      ['forced-conflict', { playerId: 'p1', secondPlayerId: 'p2' }],
+    ];
+    for (const [id, target] of blocked) {
+      expect(curseNoEffectReason(state, 'p0', id, target), id).not.toBeNull();
+      expect(curseNoEffectReason(state, 'p0', id), id).not.toBeNull();
+      expect(cast(id, target).ok, id).toBe(false);
+    }
+    expect(state.curseDiscard).toHaveLength(0);
+    // Always have an effect.
+    for (const id of ['extra-expedition', 'construction-ban', 'market-manipulation']) expect(curseNoEffectReason(state, 'p0', id)).toBeNull();
+  });
+
+  it('with no target chosen yet, a Curse is playable if any target would work', () => {
+    give(p2, 'grain', 1);
+    expect(curseNoEffectReason(state, 'p0', 'petty-theft')).toBeNull();
+    expect(curseNoEffectReason(state, 'p0', 'petty-theft', { playerId: 'p1' })).toBe('Player 1 has no resources to steal');
+    expect(curseNoEffectReason(state, 'p0', 'resource-purge', { playerId: 'p2', resource: 'warriors' })).not.toBeNull();
+    expect(curseNoEffectReason(state, 'p0', 'resource-purge', { playerId: 'p2', resource: 'grain' })).toBeNull();
+  });
+
+  it('a Theft Curse whose victims empty their inventory before it resolves has no effect', () => {
+    state = newGame(3, 42, { reactions: true });
+    [p0, p1, p2] = state.players as [Player, Player, Player];
+    give(p1, 'grain', 1);
+    p1.curseHand.push({ id: 'p1-mt', curseId: 'mass-theft' });
+    expect(cast('mass-theft').ok).toBe(true);
+    expect(state.window).not.toBeNull();
+    p1.inventory.grain.splice(0); // e.g. spent by a response
+    for (const id of state.window!.eligible) passWindow(state, id, state.window!.id, r);
+    expect(state.log.at(-1)).toMatchObject({ type: 'curseFizzled', data: { curseId: 'mass-theft' } });
   });
 
   it('Divine Foresight shows the top 3 cards to the player and lets them reorder', () => {
@@ -156,11 +215,12 @@ describe('Curse effects', () => {
     expect(p1.counters.structuresDestroyed).toBe(1);
   });
 
-  it('Forced Conflict does nothing without enough Warriors or a target', () => {
+  it('Forced Conflict cannot be played without enough Warriors or a target', () => {
     give(p1, 'warriors', 2);
     grant(state, p2, 'farm');
-    expect(cast('forced-conflict', { playerId: 'p1', secondPlayerId: 'p2' }).ok).toBe(true);
-    expect(state.pendingChoice).toBeNull();
+    const hand = p0.curseHand.length;
+    expect(cast('forced-conflict', { playerId: 'p1', secondPlayerId: 'p2' })).toMatchObject({ ok: false, error: "Player 1 can't afford an attack" });
+    expect(p0.curseHand).toHaveLength(hand + 1);
     expect(cast('forced-conflict', { playerId: 'p1', secondPlayerId: 'p1' }).ok).toBe(false);
   });
 
