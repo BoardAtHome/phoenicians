@@ -25,7 +25,8 @@ Render facts below were checked against Render's docs on 24 October 2026
 
 1. Open the service URL shown at the top of the service page, something like
    `https://phoenicians-xxxx.onrender.com`.
-2. **Changelog** should list v1, the baseline config.
+2. **What's new** should list the app builds, with the current one marked in use, and
+   v1, the baseline config, under Rules and balance.
 3. **Admin** should unlock with your password.
 4. Start a test game, copy the invite link and open it in a private window to
    claim a second seat.
@@ -58,7 +59,8 @@ the open game connections keep it awake.
 
 Merging a pull request into `main` runs the tests on GitHub Actions. Render deploys
 only once those checks pass (`autoDeployTrigger: checksPass` in `render.yaml`).
-Watch progress under the service's **Events** and **Logs**.
+Watch progress under the service's **Events** and **Logs**. Each pull request that
+changes the app bumps the build number, and **What's new › App builds** says what it added.
 
 A deploy restarts the server:
 
