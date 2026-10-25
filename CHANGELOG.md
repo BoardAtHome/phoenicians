@@ -10,7 +10,7 @@ entry is the build that goes live once the PR is merged and deployed.
 
 ## 0.11.0 — End games you've stopped playing
 
-_25 Oct 2026 · PR #13_
+_25 Oct 2026 · PR #14_
 
 - Anyone at the table can end the game for everyone from the game menu (End game for
   everyone). No one wins, and the game over screen and log say who ended it.
