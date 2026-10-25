@@ -8,6 +8,23 @@ Every pull request that changes the app adds an entry here and bumps `version` i
 root `package.json` to match (see "Releasing a build" in `PROGRESS.md`). The newest
 entry is the build that goes live once the PR is merged and deployed.
 
+## 0.12.0 — Clearer Curse prompts and auto "Not now"
+
+_25 Oct 2026 · PR #15_
+
+- Every player who could respond now gets the reaction timer and Not now after each action,
+  even with no Curse that applies. Before, the prompt only came up for players holding a
+  usable Curse, so whoever was drawing could tell nobody held one and keep going.
+- New Auto "Not now" switch, on the reaction prompt and in Your Curses. When it is on, you
+  pass on every reaction window straight away, even when you hold a Curse that could answer
+  it. Only you can see it. If everyone has it on, the game doesn't wait at all.
+- When a Curse is played on you, the prompt says what it does, not just its name. Everyone
+  else sees the same line on their banner, and the same goes for Calamities.
+- After a Curse resolves, the table is told what it did, e.g. "Ana's Construction Ban: Bob
+  can't build during their next turn", or that an expedition was cut short.
+- Opening a sheet such as the Market is no longer interrupted by every reaction window, only
+  by ones aimed at you or ones you hold a Curse for.
+
 ## 0.11.1 — No more lag and disconnects as a game goes on
 
 _25 Oct 2026 · PR #14_

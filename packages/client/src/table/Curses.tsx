@@ -78,6 +78,9 @@ export function CursesSheet({ G, turn, onClose, onPlay, onHelp }: { G: PlayerVie
         ),
       )}
       {!canPlay && <p className="muted small">Outside your turn, you'll be offered Curses you can play in a reaction window.</p>}
+      <div className="section-label"><span>Reaction windows</span></div>
+      <AutoPassToggle me={me} turn={turn} />
+      <p className="muted small">When it is on, you pass on every reaction window straight away, even when you hold a Curse that could answer it. No one else can see it.</p>
       <HelpLink onOpen={onHelp} label="Every Curse and what it does" />
     </Sheet>
   );
@@ -228,10 +231,51 @@ function aimedAt(entry: StackEntry, playerId: string): boolean {
   }
 }
 
+/** The Curses `me` could answer the open window with, one per kind even when holding several copies. */
+export function usableResponses(G: PlayerViewState, me: Player | undefined): CurseCard[] {
+  const window = G.window;
+  if (!me || !window || !window.eligible.includes(me.id) || window.passed.includes(me.id)) return [];
+  return me.curseHand.filter(
+    (c, i, hand) => canPlayInWindow(G, me.id, c.curseId) && !curseNoEffectReason(G, me.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i,
+  );
+}
+
+/** Whether the open window takes over the screen for `me`: it is aimed at them, or they have a Curse to answer with. */
+export function windowNeedsMe(G: PlayerViewState, me: Player | undefined): boolean {
+  const entry = topEntry(G);
+  if (!me || !G.window || !entry || !G.window.eligible.includes(me.id) || G.window.passed.includes(me.id)) return false;
+  return aimedAt(entry, me.id) || usableResponses(G, me).length > 0;
+}
+
+/** What the Curse or Calamity being answered does, so nobody has to know every card by heart. */
+function entryEffect(G: PlayerViewState, entry: StackEntry | undefined): { name: string; text: string } | null {
+  if (entry?.kind === 'curse') {
+    const curse = curseOf(G, entry.curseId);
+    return { name: curse.name, text: curseEffect(G.config, curse) };
+  }
+  if (entry?.kind === 'calamity') {
+    const calamity = G.config.expedition.calamities.find((c) => c.id === entry.calamityId);
+    return calamity ? { name: calamity.name, text: calamityHelp(calamity) } : null;
+  }
+  return null;
+}
+
+/** Auto "Not now": pass on every reaction window without being asked. Only you can see it. */
+export function AutoPassToggle({ me, turn }: { me: Player; turn: Turn }) {
+  return (
+    <label className="auto-pass small" title="Pass on every reaction window straight away, even when you hold a Curse that could answer it. Only you can see this setting.">
+      <input type="checkbox" checked={!!me.autoPass} disabled={turn.busy} onChange={(e) => turn.send('autoPass', e.target.checked)} />
+      Auto "Not now"
+    </label>
+  );
+}
+
 /**
- * Reaction windows. Players who can respond get a prompt (blocking when the action is aimed at them,
- * a banner otherwise); everyone else sees who acted and how many players are still deciding, never who.
- * The server closes the window when its own countdown ends. Clients still ask once theirs reaches zero, as a fallback.
+ * Reaction windows. Every player who could respond is asked, with the timer and "Not now", whether or
+ * not they hold a Curse that applies, so the prompt never gives away who holds Curses. It blocks the
+ * screen when the action is aimed at them and is a banner otherwise. Everyone else sees who acted and
+ * how many players are still deciding, never who. The server closes the window when its own countdown
+ * ends. Clients still ask once theirs reaches zero, as a fallback.
  */
 export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Turn; moves: Moves }) {
   const { me, send, busy } = turn;
@@ -249,16 +293,14 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
   useEffect(() => setChoosing(null), [window.id]);
 
   const canRespond = !!me && window.eligible.includes(me.id) && !window.passed.includes(me.id);
-  // One button per kind of Curse, even when holding several copies.
-  const usable = canRespond
-    ? me!.curseHand.filter((c, i, hand) => canPlayInWindow(G, me!.id, c.curseId) && !curseNoEffectReason(G, me!.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i)
-    : [];
+  const usable = usableResponses(G, me);
   const card = usable.find((c) => c.id === choosing);
   const paused = !!window.heldBy;
   const timer = paused ? (window.heldBy === me?.id ? 'Paused while you choose' : 'Paused: a player is choosing a response') : `${seconds}s`;
   const fraction = paused ? 1 : Math.min(1, seconds / Math.max(1, G.config.reactions.windowSeconds));
   const what = entry ? describeEntry(G, entry, me?.id) : 'Waiting for reactions';
   const aimed = !!me && !!entry && aimedAt(entry, me.id);
+  const effect = entryEffect(G, entry);
 
   const play = (c: CurseCard) => {
     if (!needsTargets(c.curseId)) return send('playCurse', c.id, {});
@@ -275,6 +317,11 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
       <span className="timer-text">{timer}</span>
     </div>
   );
+  const effectText = effect && (
+    <p className="react-effect small">
+      <b>{effect.name}:</b> {effect.text}
+    </p>
+  );
 
   if (card && me) {
     return <CursePlaySheet key={card.id} G={G} me={me} card={card} onBack={back} onPlay={(target) => { send('playCurse', card.id, target); setChoosing(null); }} />;
@@ -284,7 +331,16 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
     return (
       <Sheet className="prompt" title={what} subtitle="Respond before the timer runs out">
         {bar}
+        {effect && (
+          <div className="curse-card">
+            <div className="row-main">
+              <b>What {effect.name} does</b>
+              <span className="small">{effect.text}</span>
+            </div>
+          </div>
+        )}
         <div className="section-label"><span>Respond with a Curse</span></div>
+        {usable.length === 0 && <p className="muted small">You have no Curse that can answer this.</p>}
         {usable.map((c) => (
           <button key={c.id} type="button" className="curse-response" disabled={busy} onClick={() => play(c)}>
             <CurseCardView G={G} curseId={c.curseId}>
@@ -293,8 +349,9 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
           </button>
         ))}
         <button type="button" className="big outline" disabled={busy} onClick={() => send('pass', window.id)}>
-          Let it happen
+          Not now, let it happen
         </button>
+        <AutoPassToggle me={me!} turn={turn} />
       </Sheet>
     );
   }
@@ -307,33 +364,39 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
           <b className="grow">{what}. Respond?</b>
           <button type="button" className="small-btn" disabled={busy} onClick={() => send('pass', window.id)}>Not now</button>
         </div>
+        {effectText}
         {bar}
         <div className="react-chips">
+          {usable.length === 0 && <span className="small muted grow">No Curse to answer with.</span>}
           {usable.map((c) => (
             <button key={c.id} type="button" className="primary chip-btn" disabled={busy} title={curseEffect(G.config, curseOf(G, c.curseId))} onClick={() => play(c)}>
               {curseOf(G, c.curseId).name} <span className="stars">{'★'.repeat(curseOf(G, c.curseId).stars)}</span>
             </button>
           ))}
+          <AutoPassToggle me={me!} turn={turn} />
         </div>
       </div>
     );
   }
 
   const myAttack = entry?.kind === 'attack' && entry.playerId === me?.id;
+  const passed = !!me && window.passed.includes(me.id);
   return (
     <div className="react-banner waiting">
       <div className="react-head">
         <b className="grow">{what}</b>
       </div>
+      {effectText}
       {bar}
       <span className="small muted">
         {myAttack
           ? `Your attack lands unless it is canceled with a Curse. `
-          : window.passed.includes(me?.id ?? '')
-            ? 'You passed. '
+          : passed
+            ? me!.autoPass ? 'You passed (auto "Not now" is on). ' : 'You passed. '
             : ''}
         Waiting on {window.waitingCount} player{window.waitingCount === 1 ? '' : 's'} who may respond.
       </span>
+      {passed && me!.autoPass && <AutoPassToggle me={me!} turn={turn} />}
     </div>
   );
 }

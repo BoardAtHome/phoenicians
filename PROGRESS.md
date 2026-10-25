@@ -77,11 +77,26 @@ the server (or whose socket is dead), so the match waited until someone reconnec
       dropping the socket's outgoing frames: reconnected after 6s and the next Draw went through.
 - [ ] PR review and merge
 
+## Curse reaction prompts (0.12.0, branch `claude/project-thread-opyk10`)
+
+Playtest: players kept drawing because no prompt meant nobody held a usable Curse, and a cursed
+player had 10s to react without knowing what the Curse did.
+
+- [x] Engine: `openWindow` asks every player who could respond (not just Curse holders); players
+      with `Player.autoPass` start out passed, and no window opens if everyone has it on.
+      `setAutoPass` (move `autoPass`) also passes on the window open now. Hidden in `playerView`.
+- [x] `curseResolved` log event for Curses whose effect wasn't logged (Construction Ban, Market
+      Manipulation, Resource Purge/Exchange, Extra Expedition, Forced Exploration, Structural
+      Burden discarding everything, Forced Conflict doing nothing); `describeEvent` words it.
+- [x] Client: prompt and banners show what the Curse or Calamity does; Auto "Not now" toggle on
+      the prompt, the banners and Your Curses. Browser-checked on phone with 3 seats.
+- [ ] PR review and merge
+
 ## After milestone 7
 
 - Deploy on Render (DEPLOY.md). The free database is deleted after 30 days, so upgrade it (about $6/month).
 - The live published config may still say 7 players max; set "Most players" to 6 in Admin › Config if so.
-- Possible extras: auto-pass toggle for windows, boardgame.io dependency advisories, config/backup export.
+- Possible extras: boardgame.io dependency advisories, config/backup export.
 
 ## Releasing a build (every PR that changes the app)
 

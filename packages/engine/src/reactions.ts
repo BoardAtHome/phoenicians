@@ -52,24 +52,31 @@ export function canPlayInWindow(state: GameState, playerId: string, curseId: str
   return canRespondWith(state, playerId, curseId, entry);
 }
 
-/** Opens a reaction window on the top entry. Returns false if nobody holds a Curse they could play. */
+/**
+ * Opens a reaction window on the top entry. Every player who could be affected is asked, whether or
+ * not they hold a Curse that applies, so a window never gives away who holds Curses. Players with
+ * auto "Not now" on have passed from the start. Returns false if nobody is left to ask.
+ */
 function openWindow(state: GameState, entry: StackEntry): boolean {
   if (!(state.config.reactions.windowSeconds > 0)) return false;
-  const candidates = state.players.filter((p) => {
-    if (p.eliminated) return false;
-    if (entry.kind === 'eliminate') return p.id === entry.targetId;
-    // The explorer may answer their own Calamity (Calamity Protection).
-    return entry.kind === 'calamity' || p.id !== entry.playerId;
-  });
-  const eligible = candidates
-    .filter((p) => p.curseHand.some((c) => canRespondWith(state, p.id, c.curseId, entry)))
+  const eligible = state.players
+    .filter((p) => {
+      if (p.eliminated) return false;
+      if (entry.kind === 'eliminate') return p.id === entry.targetId;
+      // The explorer may answer their own Calamity (Calamity Protection).
+      return entry.kind === 'calamity' || p.id !== entry.playerId;
+    })
     .map((p) => p.id);
-  if (eligible.length === 0) return false;
+  const passed = eligible.filter((id) => getPlayer(state, id)!.autoPass);
+  if (eligible.length === 0 || passed.length === eligible.length) return false;
+  // For playtest stats: which Curses each player could have answered with.
   const offered = Object.fromEntries(
-    eligible.map((id) => [id, [...new Set(getPlayer(state, id)!.curseHand.filter((c) => canRespondWith(state, id, c.curseId, entry)).map((c) => c.curseId))]]),
+    eligible
+      .map((id) => [id, [...new Set(getPlayer(state, id)!.curseHand.filter((c) => canRespondWith(state, id, c.curseId, entry)).map((c) => c.curseId))]] as const)
+      .filter(([, ids]) => ids.length > 0),
   );
   logPrivate(state, 'windowOpened', entry.playerId, { entryKind: entry.kind, offered });
-  state.window = { id: state.nextWindowId++, entryId: entry.id, eligible, passed: [], deadline: null, updatedAt: null, heldBy: null, remainingMs: 0 };
+  state.window = { id: state.nextWindowId++, entryId: entry.id, eligible, passed, deadline: null, updatedAt: null, heldBy: null, remainingMs: 0 };
   return true;
 }
 
@@ -174,10 +181,20 @@ export function passWindow(state: GameState, playerId: string, windowId: number,
   const check = checkWindow(state, windowId);
   if (!check.ok) return check;
   const window = state.window!;
-  if (!window.eligible.includes(playerId)) return fail('You have nothing to respond with');
+  if (!window.eligible.includes(playerId)) return fail('You are not asked to respond to this');
   if (!window.passed.includes(playerId)) window.passed.push(playerId);
   if (window.heldBy === playerId) releaseWindow(state, playerId, windowId, now);
   if (window.eligible.every((id) => window.passed.includes(id))) closeCurrentWindow(state, rng, 'passed');
+  return ok;
+}
+
+/** Auto "Not now": the player passes on every reaction window, including the one open now. */
+export function setAutoPass(state: GameState, playerId: string, on: boolean, rng: Rng, now = 0): Result {
+  const player = getPlayer(state, playerId);
+  if (!player) return fail('You are not in this game');
+  player.autoPass = on;
+  const window = state.window;
+  if (on && window && window.eligible.includes(playerId) && !window.passed.includes(playerId)) return passWindow(state, playerId, window.id, rng, now);
   return ok;
 }
 

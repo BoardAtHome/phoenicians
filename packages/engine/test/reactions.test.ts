@@ -10,6 +10,7 @@ import {
   performRitual,
   playCurse,
   releaseWindow,
+  setAutoPass,
   stampWindow,
   stopExpedition,
   type CurseTarget,
@@ -56,23 +57,45 @@ beforeEach(() => {
 });
 
 describe('reaction windows', () => {
-  it('open after a draw for players holding a Curse they could play, and block the explorer meanwhile', () => {
+  it('open after a draw for every other player, and block the explorer meanwhile', () => {
     hand(p1, 'petty-theft');
     endActionPhase(state, 'p0');
     stackDeck(state, [res('grain'), res('grain')]);
     expect(drawExpeditionCard(state, 'p0', r).ok).toBe(true);
-    expect(state.window).toMatchObject({ eligible: ['p1'], passed: [] });
+    expect(state.window).toMatchObject({ eligible: ['p1', 'p2'], passed: [] });
     expect(drawExpeditionCard(state, 'p0', r).ok).toBe(false);
     expect(stopExpedition(state, 'p0', r).ok).toBe(false);
   });
 
-  it('do not open when nobody holds a usable Curse', () => {
+  it('open even when nobody holds a usable Curse, so a window gives nothing away', () => {
     hand(p1, 'attack-negation'); // only answers attacks
     endActionPhase(state, 'p0');
     stackDeck(state, [res('grain')]);
     drawExpeditionCard(state, 'p0', r);
+    expect(state.window).toMatchObject({ eligible: ['p1', 'p2'], passed: [] });
+    expect(playCurse(state, 'p1', p1.curseHand[0]!.id, {}, r).ok).toBe(false);
+    expect(passWindow(state, 'p1', state.window!.id, r).ok).toBe(true);
+    expect(passWindow(state, 'p2', state.window!.id, r).ok).toBe(true);
     expect(state.window).toBeNull();
     expect(state.stack).toHaveLength(0);
+  });
+
+  it('skip players with auto "Not now" on, and do not open when everyone has it on', () => {
+    hand(p1, 'petty-theft');
+    p1.autoPass = true;
+    endActionPhase(state, 'p0');
+    stackDeck(state, [res('grain'), res('grain')]);
+    drawExpeditionCard(state, 'p0', r);
+    expect(state.window).toMatchObject({ eligible: ['p1', 'p2'], passed: ['p1'] });
+    expect(playCurse(state, 'p1', p1.curseHand[0]!.id, { playerId: 'p0' }, r).ok).toBe(false);
+    // Turning it on mid-window passes on the open one too.
+    expect(setAutoPass(state, 'p2', true, r).ok).toBe(true);
+    expect(state.window).toBeNull();
+    drawExpeditionCard(state, 'p0', r);
+    expect(state.window).toBeNull();
+    expect(state.expedition?.drawn).toHaveLength(2);
+    setAutoPass(state, 'p1', false, r);
+    expect(p1.autoPass).toBe(false);
   });
 
   it('close as soon as every eligible player passes', () => {
@@ -134,7 +157,7 @@ describe('reactive Curses', () => {
     hand(p1, 'attack-negation');
     attack(state, 'p0', 'p1', p1.structures[0]!.id, r);
     expect(p1.structures).toHaveLength(1);
-    expect(state.window?.eligible).toEqual(['p1']);
+    expect(state.window?.eligible).toEqual(['p1', 'p2']);
     expect(respond(p1, 'attack-negation').ok).toBe(true);
     settle();
     expect(p1.structures).toHaveLength(1);
@@ -156,7 +179,7 @@ describe('reactive Curses', () => {
     hand(p0, 'curse-negation');
     attack(state, 'p0', 'p1', p1.structures[0]!.id, r);
     respond(p1, 'attack-negation');
-    expect(state.window?.eligible).toEqual(['p0']);
+    expect(state.window?.eligible).toEqual(['p0', 'p2']);
     expect(respond(p0, 'curse-negation').ok).toBe(true);
     settle();
     expect(p1.structures).toHaveLength(0);
@@ -166,7 +189,7 @@ describe('reactive Curses', () => {
     give(p1, 'grain', 2);
     hand(p1, 'curse-negation');
     respond(p0, 'petty-theft', { playerId: 'p1' });
-    expect(state.window?.eligible).toEqual(['p1']);
+    expect(state.window?.eligible).toEqual(['p1', 'p2']);
     respond(p1, 'curse-negation');
     settle();
     expect(p1.inventory.grain).toHaveLength(2);
@@ -197,11 +220,13 @@ describe('reactive Curses', () => {
     endActionPhase(state, 'p0');
     stackDeck(state, [res('grain'), cal('discard-expedition'), res('warriors')]);
     drawExpeditionCard(state, 'p0', r);
+    settle();
     drawExpeditionCard(state, 'p0', r);
-    expect(state.window?.eligible).toEqual(['p0']);
+    expect(state.window?.eligible).toEqual(['p0', 'p1', 'p2']);
     expect(respond(p0, 'calamity-protection').ok).toBe(true);
     settle();
     expect(state.expedition?.drawn).toHaveLength(1);
+    expect(state.log.some((e) => e.type === 'calamityPrevented')).toBe(true);
     expect(drawExpeditionCard(state, 'p0', r).ok).toBe(true);
     expect(state.expedition?.drawn).toHaveLength(2);
   });
@@ -211,6 +236,7 @@ describe('reactive Curses', () => {
     endActionPhase(state, 'p0');
     stackDeck(state, [res('grain'), cal('discard-expedition')]);
     drawExpeditionCard(state, 'p0', r);
+    expire();
     drawExpeditionCard(state, 'p0', r);
     expire();
     expect(state.turn.activePlayerId).toBe('p1');
@@ -287,6 +313,8 @@ describe('reactive Curses', () => {
   it('a correct guess without Revival eliminates at once', () => {
     p0.divineCoins = state.config.costs.guessProphecy;
     guessProphecy(state, 'p0', 'p1', p1.prophecyId, r);
+    expect(state.window?.eligible).toEqual(['p1']); // asked anyway, so others can't tell they hold no Revival
+    settle();
     expect(p1.eliminated).toBe(true);
   });
 });
@@ -303,6 +331,7 @@ describe('Extra Expedition outside your turn', () => {
 
     expect(state.turn).toMatchObject({ activePlayerId: 'p2', phase: 'expedition', resumeAfter: 'p0' });
     drawExpeditionCard(state, 'p2', r);
+    settle();
     stopExpedition(state, 'p2', r);
     expect(p2.inventory.warriors).toHaveLength(1);
     expect(state.turn).toMatchObject({ activePlayerId: 'p1', phase: 'action' });

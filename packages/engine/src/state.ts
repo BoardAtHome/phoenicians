@@ -46,6 +46,8 @@ export interface Player {
   reviving: boolean;
   /** Turn on which the current Prophecy was first seen met, for playtest stats. Null while unmet. */
   prophecyMetTurn: number | null;
+  /** Auto "Not now": passes on every reaction window without asking. Secret, like the hand. */
+  autoPass?: boolean;
 }
 
 /**
@@ -93,7 +95,7 @@ export interface CurseTargetInput {
 export interface ReactionWindow {
   id: number;
   entryId: number;
-  /** Players holding a Curse they could play now. */
+  /** Players asked whether to respond, whether or not they hold a Curse that applies. */
   eligible: string[];
   passed: string[];
   /** Server time (ms) when the window may be closed. Null until the server stamps it. */

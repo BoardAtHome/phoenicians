@@ -4,7 +4,7 @@ import type { PlayerViewState } from '@phoenicians/game';
 import { describeEvent, describeEntry } from '../format';
 import { ActionsSheet, GuessSheet } from './Actions';
 import { Center } from './Center';
-import { CursePlaySheet, CursesSheet, DiscardSheet, ForcedAttackSheet, ForesightSheet, ReactionLayer } from './Curses';
+import { CursePlaySheet, CursesSheet, DiscardSheet, ForcedAttackSheet, ForesightSheet, ReactionLayer, windowNeedsMe } from './Curses';
 import { Dock } from './Dock';
 import { GuideSheet, type GuideTab } from './Guide';
 import { Icon } from './Icon';
@@ -34,9 +34,9 @@ export function Table({ G, moves, playerID, matchData, inviteLink, onLeave, onSt
   useEffect(() => {
     if (G.turn.phase === 'gameOver') setOverlay({ kind: 'gameOver' });
   }, [G.turn.phase]);
-  // A reaction you can answer takes over the screen: close whatever sheet was open underneath.
+  // A reaction aimed at you, or one you hold a Curse for, takes over the screen: close whatever sheet was open underneath.
   useEffect(() => {
-    if (G.window && me && G.window.eligible.includes(me.id)) setOverlay(null);
+    if (windowNeedsMe(G, me)) setOverlay(null);
   }, [G.window?.id]); // the attack went through, or something else happened
   const isConnected = (id: string) => matchData?.find((m) => String(m.id) === id)?.isConnected ?? false;
 

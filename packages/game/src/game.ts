@@ -16,6 +16,7 @@ import {
   performRitual,
   playCurse,
   releaseWindow,
+  setAutoPass,
   resolveForcedAttack,
   resolveDiscardChoice,
   setupGame,
@@ -140,6 +141,7 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
       holdWindow: ({ G, playerID }, windowId: number) => toResult(holdWindow(G, playerID, windowId, Date.now())),
       releaseWindow: ({ G, playerID }, windowId: number) => toResult(releaseWindow(G, playerID, windowId, Date.now())),
       closeWindow: ({ G, random }, windowId: number) => toResult(closeWindow(G, windowId, Date.now(), rngFrom(random))),
+      autoPass: ({ G, playerID, random }, on: boolean) => toResult(setAutoPass(G, playerID, !!on, rngFrom(random), Date.now())),
       // Any seated player can end the game for everyone, e.g. when the table stops playing.
       endGame: ({ G, playerID }) => toResult(endMatch(G, playerID)),
     }),

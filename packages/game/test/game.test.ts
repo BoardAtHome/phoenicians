@@ -91,6 +91,14 @@ describe('reaction window visibility', () => {
     expect(playerView(raw, '2').window).toMatchObject({ eligible: ['2'], passed: ['2'], waitingCount: 1 });
     expect(playerView(raw, '0').window).toMatchObject({ eligible: [], passed: [], waitingCount: 1 });
   });
+
+  it('keeps auto "Not now" secret from other players', async () => {
+    const { playerView } = await import('../src');
+    const raw = createPhoenicians().setup!({ ctx: { playOrder: ['0', '1', '2'], numPlayers: 3 }, random: { Number: Math.random } } as never);
+    raw.players[1]!.autoPass = true;
+    expect(playerView(raw, '1').players[1]!.autoPass).toBe(true);
+    expect(playerView(raw, '0').players[1]!.autoPass).toBeUndefined();
+  });
 });
 
 describe('playtest records', () => {
