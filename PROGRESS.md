@@ -38,6 +38,13 @@ keep the current look (colors, fonts, panels), and take liberties where the mock
       expedition, attack, Curses with targets, reaction prompts, discards and admin end-match. Version 0.7.0.
 - [ ] PR review and merge
 
+## Playtest feedback (after milestone 7)
+
+- [x] Drawn card shown face up in the middle (`table/Center.tsx`, branch `claude/project-thread-s9pp7k`).
+      Derived from the log: the newest draw stays until a log event that isn't its aftermath
+      (window closed, Calamity resolved, expedition ended, next turn started, extra expedition).
+      The deck shrinks beside it when the middle is narrow (container query).
+
 ## After milestone 7
 
 - Deploy on Render (DEPLOY.md). The free database is deleted after 30 days, so upgrade it (about $6/month).

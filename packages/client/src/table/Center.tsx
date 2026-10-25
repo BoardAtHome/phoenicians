@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { GameEvent } from '@phoenicians/engine';
+import type { GameEvent, Resource } from '@phoenicians/engine';
 import type { PlayerViewState } from '@phoenicians/game';
-import { describeEvent } from '../format';
+import { describeEvent, RESOURCE_LABEL } from '../format';
 import { Icon } from './Icon';
 import { lastIndex, type Turn } from './useTurn';
 
@@ -17,6 +17,54 @@ function useRecent(G: PlayerViewState, types: string[], ms: number): GameEvent |
     return () => clearTimeout(timer);
   }, [index]);
   return shown >= 0 && shown === index ? G.log[index]! : null;
+}
+
+const DRAWS = ['expeditionDraw', 'calamityIgnored', 'calamityDrawn'];
+// What follows a draw without anyone choosing to act. The drawn card stays face up through these.
+const AFTERMATH = ['windowClosed', 'calamityApplied', 'calamityPrevented', 'calamityFizzled', 'expeditionEnded', 'expeditionDeckReshuffled', 'discardChosen', 'turnStarted'];
+
+/** The last card drawn from the Expedition deck, until something new happens at the table. */
+function revealedDraw(G: PlayerViewState): { index: number; event: GameEvent; outcome?: GameEvent } | null {
+  const index = lastIndex(G.log, (e) => DRAWS.includes(e.type));
+  if (index < 0) return null;
+  const event = G.log[index]!;
+  let outcome: GameEvent | undefined;
+  for (const later of G.log.slice(index + 1)) {
+    const extraExpedition = later.type === 'expeditionStarted' && later.data?.extra;
+    if (!AFTERMATH.includes(later.type) && !extraExpedition) return null;
+    if (event.type === 'calamityDrawn' && later.type.startsWith('calamity') && later.data?.calamityId === event.data?.calamityId) outcome ??= later;
+  }
+  return { index, event, outcome };
+}
+
+/** The face-up card next to the deck. Keyed by log index so each new draw flips in. */
+function RevealedCard({ G, event, outcome }: { G: PlayerViewState; event: GameEvent; outcome?: GameEvent }) {
+  if (event.type === 'expeditionDraw') {
+    const resource = event.data?.resource as Resource;
+    return (
+      <div className={`face-card bg-${resource}`}>
+        <Icon name={resource} size={34} />
+        <b>{RESOURCE_LABEL[resource]}</b>
+      </div>
+    );
+  }
+  const calamity = G.config.expedition.calamities.find((c) => c.id === event.data?.calamityId);
+  const stamp =
+    event.type === 'calamityIgnored'
+      ? 'Ignored: first card is safe'
+      : outcome?.type === 'calamityPrevented'
+        ? 'Stopped'
+        : outcome?.type === 'calamityFizzled'
+          ? 'No effect'
+          : null;
+  return (
+    <div className={`face-card calamity ${stamp ? 'defused' : ''}`}>
+      <span className="face-kind">Calamity</span>
+      <Icon name="alert" size={22} />
+      <b>{calamity?.name ?? String(event.data?.calamityId)}</b>
+      {stamp && <span className="face-stamp">{stamp}</span>}
+    </div>
+  );
 }
 
 /** Copy for how many cards are still safe from Calamities. */
@@ -35,6 +83,8 @@ export function Center({ G, turn }: { G: PlayerViewState; turn: Turn }) {
   const mine = !!me && explorer?.id === me.id;
   const top = G.stack[G.stack.length - 1];
   const struck = useRecent(G, ['calamityApplied', 'calamityPrevented', 'calamityIgnored'], 4500);
+  const revealed = revealedDraw(G);
+  const drawer = revealed && G.players.find((p) => p.id === revealed.event.playerId);
   const calamityName = (id: unknown) => G.config.expedition.calamities.find((c) => c.id === id)?.name ?? String(id);
 
   let below: React.ReactNode;
@@ -85,11 +135,14 @@ export function Center({ G, turn }: { G: PlayerViewState; turn: Turn }) {
 
   return (
     <div className="center">
-      <div className="deck" title="Expedition deck">
-        <Icon name="ship" size={22} />
-        <b>{G.counts.expeditionDeck}</b>
+      <div className={`deck-row ${revealed ? 'revealing' : ''}`}>
+        <div className="deck" title="Expedition deck">
+          <Icon name="ship" size={22} />
+          <b>{G.counts.expeditionDeck}</b>
+        </div>
+        {revealed && <RevealedCard key={revealed.index} G={G} event={revealed.event} outcome={revealed.outcome} />}
       </div>
-      <span className="deck-label">Expedition deck</span>
+      <span className="deck-label">{revealed && drawer ? `${drawer.id === me?.id ? 'You' : drawer.name} drew` : 'Expedition deck'}</span>
       {below}
     </div>
   );
