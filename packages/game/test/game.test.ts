@@ -44,6 +44,18 @@ describe('Phoenicians game', () => {
     expect(state(p1).turn.phase).toBe(G.turn.phase);
   });
 
+  it('lets any player end the game for everyone, even out of turn', () => {
+    const local = Local();
+    const p0 = Client({ game: Phoenicians, numPlayers: 3, multiplayer: local, playerID: '0', matchID: 'end-game' });
+    const p1 = Client({ game: Phoenicians, numPlayers: 3, multiplayer: local, playerID: '1', matchID: 'end-game' });
+    p0.start();
+    p1.start();
+    p1.moves.endGame!();
+    expect(state(p0).turn.phase).toBe('gameOver');
+    expect(p0.getState()!.ctx.gameover).toEqual({ endedBy: '1' });
+    expect(state(p0).log.at(-1)).toMatchObject({ type: 'matchEnded', playerId: '1' });
+  });
+
   it('hides other players’ curses, Prophecies and deck order', () => {
     const local = Local();
     const p0 = Client({ game: Phoenicians, numPlayers: 3, multiplayer: local, playerID: '0', matchID: 'hidden-info' });

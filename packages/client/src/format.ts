@@ -149,7 +149,7 @@ export function describeEvent(G: GameState, e: GameEvent): string | null {
     case 'prophecyReplaced':
       return `${who}'s Prophecy was replaced.`;
     case 'matchEnded':
-      return 'The admin ended this game.';
+      return d.by === 'idle' ? 'The game ended after no one played for a long time.' : e.playerId ? `${who} ended the game.` : 'The admin ended this game.';
     case 'gameWon':
       return d.reason === 'prophecy'
         ? `${who} revealed ${prophecyName(G, d.prophecyId)} and won the game!`

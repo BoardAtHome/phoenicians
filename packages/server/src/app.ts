@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { eventsCsv, gameStats, summaryRow, toCsv, type GameConfig, type GameState } from '@phoenicians/engine';
-import { createPhoenicians, type SetupData } from '@phoenicians/game';
+import { endMatch, eventsCsv, gameStats, summaryRow, toCsv, type EndedBy, type GameConfig, type GameState } from '@phoenicians/engine';
+import { createPhoenicians, gameoverOf, type SetupData } from '@phoenicians/game';
 import type { Server as ServerTypes, State, StorageAPI } from 'boardgame.io';
 import { Server, SocketIO } from 'boardgame.io/server';
 import serve from 'koa-static';
@@ -19,6 +19,8 @@ export interface AppOptions {
   origins?: string[];
   /** boardgame.io match storage; in-memory when omitted. */
   db?: StorageAPI.Async;
+  /** Games with no moves for this many hours end by themselves; 0 turns this off. */
+  idleHours?: number;
 }
 
 type Ctx = {
@@ -41,7 +43,7 @@ async function readJson(ctx: Ctx): Promise<Record<string, unknown>> {
   }
 }
 
-export function createApp({ store, adminPassword, build, clientDir, origins, db }: AppOptions) {
+export function createApp({ store, adminPassword, build, clientDir, origins, db, idleHours = 0 }: AppOptions) {
   const auth = new AdminAuth(adminPassword);
 
   const game = createPhoenicians({
@@ -153,6 +155,7 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
   }
   const matchSummary = ({ matchID, state, metadata }: Match) => {
     const G = state.G;
+    const endedBy = G.turn.phase === 'gameOver' && !G.winnerId ? gameoverOf(G).endedBy : null;
     return {
       matchID,
       createdAt: metadata.createdAt,
@@ -162,6 +165,7 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
       phase: G.turn.phase,
       activePlayer: G.players.find((p) => p.id === G.turn.activePlayerId)?.name,
       winner: G.players.find((p) => p.id === G.winnerId)?.name ?? null,
+      endedBy: endedBy === null || endedBy === 'admin' || endedBy === 'idle' ? endedBy : (G.players.find((p) => p.id === endedBy)?.name ?? endedBy),
       configVersion: G.meta?.configVersion ?? 'unknown',
       build: G.meta?.build ?? 'unknown',
       undoDepth: matches.undoDepth(matchID),
@@ -194,8 +198,64 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
     pubSub?.publish(`MATCH-${match.matchID}`, { type: 'update', args: [match.matchID, state] });
   }
 
+  /**
+   * Ends a game without a winner, in the match's move queue so it cannot race a player's move.
+   * Returns an error message when the game cannot be ended.
+   */
+  async function endGame(matchID: string, by: EndedBy): Promise<string | null> {
+    let error: string | null = 'No such match';
+    await transport.getMatchQueue(matchID).add(async () => {
+      const match = await loadMatch(matchID);
+      if (!match) return;
+      const state = structuredClone(match.state);
+      const result = endMatch(state.G, by);
+      if (!result.ok) {
+        error = result.error;
+        return;
+      }
+      state.G.log[state.G.log.length - 1]!.at = Date.now();
+      state.ctx.gameover = gameoverOf(state.G);
+      await replaceState(match, state);
+      error = null;
+    });
+    return error;
+  }
+
+  /** Ends every unfinished game with no moves for `hours`. Returns the ids of the games ended. */
+  async function endIdleGames(hours: number, by: EndedBy): Promise<string[]> {
+    const ids = await matches.listMatches({ gameName: game.name, where: { isGameover: false, updatedBefore: Date.now() - hours * 3_600_000 } });
+    const ended: string[] = [];
+    for (const matchID of ids) if ((await endGame(matchID, by)) === null) ended.push(matchID);
+    return ended;
+  }
+
+  // Abandoned games end by themselves: checked when the server starts and every 15 minutes after.
+  let idleSweep: ReturnType<typeof setInterval> | undefined;
+  const sweepIdle = () =>
+    endIdleGames(idleHours, 'idle')
+      .then((ended) => ended.length && console.log(`Ended ${ended.length} game(s) idle for ${idleHours}h: ${ended.join(', ')}`))
+      .catch((err) => console.error('Could not end idle games', err));
+  const idleGames = {
+    start() {
+      if (!(idleHours > 0) || idleSweep) return;
+      void sweepIdle();
+      idleSweep = setInterval(() => void sweepIdle(), 15 * 60_000);
+      idleSweep.unref();
+    },
+    stop: () => clearInterval(idleSweep),
+  };
+
   router.get('/api/admin/matches', admin(async (ctx) => {
-    ctx.body = { matches: (await allMatches()).map(matchSummary) };
+    ctx.body = { matches: (await allMatches()).map(matchSummary), idleHours };
+  }));
+  router.post('/api/admin/matches/end-idle', admin(async (ctx) => {
+    const { hours } = await readJson(ctx);
+    if (typeof hours !== 'number' || !(hours >= 0)) {
+      ctx.status = 400;
+      ctx.body = { error: 'hours must be a number of hours, 0 or more' };
+      return;
+    }
+    ctx.body = { ended: await endIdleGames(hours, 'admin') };
   }));
   router.get('/api/admin/matches/:id', withMatch((ctx, match) => {
     ctx.body = { summary: matchSummary(match), stats: gameStats(match.state.G), G: match.state.G };
@@ -213,19 +273,14 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
     download(ctx, 'phoenicians-games.csv', 'text/csv', toCsv([columns, ...rows.map((r) => columns.map((c) => r[c]))]));
   }));
   router.post('/api/admin/matches/:id/end', withMatch(async (ctx, match) => {
-    const state = structuredClone(match.state);
-    const G = state.G;
-    if (G.turn.phase === 'gameOver') {
+    const error = await endGame(match.matchID, 'admin');
+    if (error) {
       ctx.status = 400;
-      ctx.body = { error: 'That match is already over' };
+      ctx.body = { error };
       return;
     }
-    Object.assign(G, { stack: [], window: null, pendingChoice: null });
-    G.turn.phase = 'gameOver';
-    G.log.push({ turn: G.turn.number, type: 'matchEnded', data: { by: 'admin' }, at: Date.now() });
-    state.ctx.gameover = { endedByAdmin: true };
-    await replaceState(match, state);
-    ctx.body = { summary: matchSummary({ ...match, state }) };
+    const ended = await loadMatch(match.matchID);
+    ctx.body = { summary: ended && matchSummary(ended) };
   }));
   router.post('/api/admin/matches/:id/undo', withMatch(async (ctx, match) => {
     const previous = matches.popState(match.matchID) as State<GameState> | null;
@@ -251,5 +306,5 @@ export function createApp({ store, adminPassword, build, clientDir, origins, db 
     });
   }
 
-  return Object.assign(server, { windowTimers });
+  return Object.assign(server, { windowTimers, idleGames });
 }

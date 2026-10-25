@@ -16,8 +16,12 @@ if (!pool) console.warn('DATABASE_URL is not set: configs and games will be lost
 const persistence = pool ? await postgresPersistence(pool) : memoryPersistence();
 const db = pool ? new PostgresMatchStore(pool) : undefined;
 
+// Games with no moves for this long end by themselves (0 turns it off).
+const idleHours = Number(process.env.IDLE_MATCH_HOURS ?? 24);
+
 const store = await ConfigStore.open(persistence, build);
-const server = createApp({ store, adminPassword, build, db, clientDir: path.join(root, 'packages/client/dist') });
+const server = createApp({ store, adminPassword, build, db, idleHours, clientDir: path.join(root, 'packages/client/dist') });
 await server.run(port, () => console.log(`Phoenicians ${build} listening on :${port}`));
 // Reaction windows left open when the server stopped or slept close as soon as it is back.
 await server.windowTimers.trackAll();
+server.idleGames.start();

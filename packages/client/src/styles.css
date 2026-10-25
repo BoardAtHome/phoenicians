@@ -107,6 +107,7 @@ input.num { width: 76px; }
 .form-section > .stack { margin-top: 8px; }
 .form-table { border-collapse: collapse; width: 100%; font-size: 0.9em; display: block; overflow-x: auto; }
 .form-table th { text-align: left; font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.nowrap { white-space: nowrap; }
 .form-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .form-table td input:not(.num) { min-width: 140px; }
 .form-table td textarea { width: 100%; min-width: 180px; margin-top: 4px; }

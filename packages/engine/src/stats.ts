@@ -92,6 +92,9 @@ const average = (xs: number[]) => (xs.length ? round(xs.reduce((a, b) => a + b, 
 export function gameStats(state: GameState): GameStats {
   const nameOf = (id: string | undefined) => state.players.find((p) => p.id === id)?.name ?? String(id);
   const prophecyName = (id: unknown) => state.config.prophecies.find((p) => p.id === id)?.name ?? String(id);
+  // Games ended before this build only logged the admin.
+  const endedByName = (by: unknown) =>
+    by === 'idle' ? 'inactivity' : by === 'admin' || by === undefined ? 'admin' : (state.players.find((p) => p.id === by)?.name ?? String(by));
   const categoryOf = (structureId: unknown) => state.config.structures.find((s) => s.id === structureId)?.category;
 
   const ownTurns: Record<string, number> = {};
@@ -276,6 +279,7 @@ export function gameStats(state: GameState): GameStats {
   const startedAt = times.length ? times[0]! : null;
   const endedAt = times.length ? times[times.length - 1]! : null;
   const won = state.log.find((e) => e.type === 'gameWon');
+  const ended = state.log.find((e) => e.type === 'matchEnded');
   const winner = state.winnerId ? state.players.find((p) => p.id === state.winnerId)! : null;
 
   return {
@@ -286,7 +290,7 @@ export function gameStats(state: GameState): GameStats {
       rounds: round(state.turn.number / state.players.length),
       winner: winner?.name ?? null,
       winningProphecy: winner ? prophecyName(won?.data?.prophecyId ?? winner.prophecyId) : null,
-      reason: won ? String(won.data?.reason) : state.turn.phase === 'gameOver' ? 'ended by admin' : null,
+      reason: won ? String(won.data?.reason) : state.turn.phase === 'gameOver' ? `ended by ${endedByName(ended?.data?.by)}` : null,
       configVersion: state.meta?.configVersion ?? 'unknown',
       build: state.meta?.build ?? 'unknown',
       startedAt,

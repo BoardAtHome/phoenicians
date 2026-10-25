@@ -8,6 +8,20 @@ Every pull request that changes the app adds an entry here and bumps `version` i
 root `package.json` to match (see "Releasing a build" in `PROGRESS.md`). The newest
 entry is the build that goes live once the PR is merged and deployed.
 
+## 0.11.0 — End games you've stopped playing
+
+_25 Oct 2026 · PR #13_
+
+- Anyone at the table can end the game for everyone from the game menu (End game for
+  everyone). No one wins, and the game over screen and log say who ended it.
+- Games with no moves for 24 hours end by themselves, so abandoned games stop piling
+  up as in progress. The time can be changed on the server (`IDLE_MATCH_HOURS`).
+- Admin > Matches lists games in progress by default, with when each last had a move,
+  an End button on each row, and End idle games to end every game with no moves for
+  1 to 72 hours in one go. Tick Show finished games to see the rest.
+- Ended games keep their full log and stats, and say whether a player, the admin or
+  inactivity ended them.
+
 ## 0.10.1 — Reaction timer no longer gets stuck
 
 _25 Oct 2026 · PR #12_
