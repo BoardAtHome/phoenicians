@@ -160,6 +160,7 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
         state.expeditionDiscard.push(...player.inventory[give].splice(-count));
         for (const c of available.slice(-count)) state.expeditionDiscard.splice(state.expeditionDiscard.indexOf(c), 1);
         addToInventory(player.inventory, available.slice(-count));
+        log(state, 'curseResolved', playerId, { curseId: curse.id, give, take, count });
       };
       break;
     }
@@ -190,13 +191,16 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
     case 'extra-expedition':
       apply = () => {
         // Played outside your own turn, the expedition runs as soon as the current turn ends.
-        if (state.turn.activePlayerId === playerId) state.turn.extraExpeditions++;
-        else state.extraExpeditionQueue.push(playerId);
+        const outOfTurn = state.turn.activePlayerId !== playerId;
+        if (outOfTurn) state.extraExpeditionQueue.push(playerId);
+        else state.turn.extraExpeditions++;
+        log(state, 'curseResolved', playerId, { curseId: curse.id, outOfTurn });
       };
       break;
     case 'construction-ban':
       apply = () => {
         targetPlayer!.constructionBans += params.turns ?? 1;
+        log(state, 'curseResolved', playerId, { curseId: curse.id, targetId: targetPlayer!.id, turns: params.turns ?? 1 });
       };
       break;
     case 'market-manipulation':
@@ -208,6 +212,7 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
         }
         shuffle(rng, state.buildingDeck);
         refillShop(state);
+        log(state, 'curseResolved', playerId, { curseId: curse.id });
       };
       break;
     case 'forced-conflict': {
@@ -218,6 +223,8 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
         // Nothing happens if Player A cannot afford an attack or Player B has nothing to attack.
         if (canAfford(targetPlayer!.inventory, state.config.costs.attack) && victim.structures.length > 0) {
           state.pendingChoice = { kind: 'forcedAttack', playerId: targetPlayer!.id, targetId: victim.id };
+        } else {
+          log(state, 'curseResolved', playerId, { curseId: curse.id, targetId: targetPlayer!.id, secondPlayerId: victim.id, nothing: true });
         }
       };
       break;
@@ -226,7 +233,9 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
       const resource = target.resource;
       if (!resource || !RESOURCES.includes(resource)) return no('Choose a resource');
       apply = () => {
-        state.expeditionDiscard.push(...targetPlayer!.inventory[resource].splice(0));
+        const purged = targetPlayer!.inventory[resource].splice(0);
+        state.expeditionDiscard.push(...purged);
+        log(state, 'curseResolved', playerId, { curseId: curse.id, targetId: targetPlayer!.id, resource, count: purged.length });
       };
       break;
     }
@@ -247,6 +256,7 @@ export function prepareCurse(state: GameState, playerId: string, curseId: string
         const size = inventorySize(targetPlayer!.inventory);
         if (count >= size) {
           for (const r of RESOURCES) state.expeditionDiscard.push(...targetPlayer!.inventory[r].splice(0));
+          log(state, 'curseResolved', playerId, { curseId: curse.id, targetId: targetPlayer!.id, count: size });
         } else if (count > 0) {
           state.pendingChoice = { kind: 'discardInventory', playerId: targetPlayer!.id, count, source: { type: 'curse', curseId: curse.id } };
         }
@@ -322,6 +332,7 @@ function prepareResponse(
               }
             : () => {
                 exp.mustDraw += params.extraDraws ?? 3;
+                log(state, 'curseResolved', player.id, { curseId, targetId: explorerId, draws: params.extraDraws ?? 3 });
               };
       return { affects: [explorerId], apply };
     }

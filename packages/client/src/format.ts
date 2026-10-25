@@ -70,6 +70,32 @@ export function describeEntry(G: GameState, e: StackEntry, viewerId?: string): s
   }
 }
 
+/** What a Curse did once it resolved, for Curses whose effect isn't logged some other way. */
+function curseOutcome(G: GameState, d: Record<string, unknown>): string {
+  const n = Number(d.count ?? 0);
+  const res = (r: unknown, count: number) => `${count} ${RESOURCE_LABEL[r as Resource] ?? String(r)}`;
+  switch (d.curseId) {
+    case 'resource-exchange':
+      return `swapped ${res(d.give, n)} for ${res(d.take, n)} from the discard pile`;
+    case 'extra-expedition':
+      return d.outOfTurn ? 'they go on an extra expedition when this turn ends' : 'they go on an extra expedition after this one';
+    case 'construction-ban':
+      return `${name(G, d.targetId)} can't build during their next ${d.turns === 1 ? 'turn' : `${d.turns} turns`}`;
+    case 'market-manipulation':
+      return 'the Market was reshuffled and refilled';
+    case 'forced-conflict':
+      return `nothing happened, since ${name(G, d.targetId)} couldn't attack ${name(G, d.secondPlayerId)}`;
+    case 'resource-purge':
+      return `${name(G, d.targetId)} discarded ${n === 0 ? 'nothing' : `all ${res(d.resource, n)}`}`;
+    case 'structural-burden':
+      return `${name(G, d.targetId)} discarded their whole inventory (${n} card${n === 1 ? '' : 's'})`;
+    case 'forced-exploration':
+      return `${name(G, d.targetId)} must draw ${d.draws} more before stopping`;
+    default:
+      return 'it took effect';
+  }
+}
+
 /** Turns a log event into a sentence for the activity feed. */
 export function describeEvent(G: GameState, e: GameEvent): string | null {
   const who = e.playerId ? name(G, e.playerId) : '';
@@ -104,6 +130,8 @@ export function describeEvent(G: GameState, e: GameEvent): string | null {
       const res = d.resource ? ` (${RESOURCE_LABEL[d.resource as Resource]})` : '';
       return `${who} ${d.answering ? 'answered with' : 'played'} ${curse}${on}${and}${res}.`;
     }
+    case 'curseResolved':
+      return `${who}'s ${curseName(G, d.curseId)}: ${curseOutcome(G, d)}.`;
     case 'curseCanceled':
       return `${who}'s ${curseName(G, d.curseId)} was canceled.`;
     case 'curseFizzled':
@@ -129,7 +157,9 @@ export function describeEvent(G: GameState, e: GameEvent): string | null {
     case 'expeditionArranged':
       return `${who} rearranged the top of the Expedition deck.`;
     case 'expeditionEnded':
-      return `${who} returned with ${d.kept} card${d.kept === 1 ? '' : 's'}.`;
+      return d.reason === 'interrupted'
+        ? `${who}'s expedition was cut short. They kept ${d.kept} card${d.kept === 1 ? '' : 's'}.`
+        : `${who} returned with ${d.kept} card${d.kept === 1 ? '' : 's'}.`;
     case 'expeditionDeckReshuffled':
       return 'The Expedition discard pile was reshuffled into a new deck.';
     case 'attacked':

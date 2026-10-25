@@ -44,7 +44,8 @@ describe('playing Curses', () => {
     expect(cast('market-manipulation').ok).toBe(true);
     expect(p0.curseHand).toHaveLength(before);
     expect(state.curseDiscard.at(-1)!.curseId).toBe('market-manipulation');
-    expect(state.log.at(-1)).toMatchObject({ type: 'cursePlayed', playerId: 'p0', data: { curseId: 'market-manipulation' } });
+    expect(state.log.find((e) => e.type === 'cursePlayed')).toMatchObject({ playerId: 'p0', data: { curseId: 'market-manipulation' } });
+    expect(state.log.at(-1)).toMatchObject({ type: 'curseResolved', playerId: 'p0', data: { curseId: 'market-manipulation' } });
   });
 
   it('outside a reaction window, is only allowed on your own turn', () => {
@@ -183,6 +184,7 @@ describe('Curse effects', () => {
 
   it('Construction Ban stops the target building during their next turn only', () => {
     cast('construction-ban', { playerId: 'p1' });
+    expect(state.log.at(-1)).toMatchObject({ type: 'curseResolved', data: { curseId: 'construction-ban', targetId: 'p1', turns: 1 } });
     passTurn(state);
     give(p1, 'buildingMaterials', 30);
     give(p1, 'warriors', 5);
@@ -228,7 +230,8 @@ describe('Curse effects', () => {
     give(p1, 'grain', 4);
     give(p1, 'warriors', 1);
     cast('resource-purge', { playerId: 'p1', resource: 'grain' });
-    expect(inventoryCounts(p1.inventory)).toMatchObject({ grain: 0, warriors: 1 });
+    expect(inventoryCounts(p1.inventory)).toMatchObject({ grain: 0, warriors: 1 });    // Logged so the whole table sees what it did.
+    expect(state.log.at(-1)).toMatchObject({ type: 'curseResolved', playerId: 'p0', data: { curseId: 'resource-purge', targetId: 'p1', resource: 'grain', count: 4 } });
   });
 
   it('Military Sabotage destroys one structure per 3 Warriors the target holds, credited to the caster', () => {

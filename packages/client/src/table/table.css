@@ -197,6 +197,10 @@ button.curse-response:hover:not(:disabled) .curse-card { background: var(--panel
 .react-head { display: flex; align-items: center; gap: 8px; }
 .react-banner .small-btn { background: var(--bg); border: 1px solid var(--line); }
 .react-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.react-effect { margin: 0; }
+.auto-pass { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.react-banner .auto-pass, .sheet.prompt .auto-pass { margin-left: auto; }
+.auto-pass input { margin: 0; }
 .chip-btn { padding: 6px 12px; font-size: 13px; }
 .chip-btn .stars { color: var(--res-grain); }
 .mini-card.calamity { background: var(--danger); color: #fff; }

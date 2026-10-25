@@ -18,8 +18,8 @@ export const HIDDEN = 'hidden';
 
 /**
  * Hides everything that is secret from `playerID`: other players' curse hands
- * (only the count shows) and Prophecies (until revealed by elimination or victory),
- * plus the order of every deck. Inventories, structures and coins are public.
+ * (only the count shows), Prophecies (until revealed by elimination or victory),
+ * auto "Not now" settings, and the order of every deck. Inventories, structures and coins are public.
  */
 export function playerView(G: GameState, playerID: string | null | undefined): PlayerViewState {
   const gameOver = G.turn.phase === 'gameOver';
@@ -30,6 +30,7 @@ export function playerView(G: GameState, playerID: string | null | undefined): P
         ? p
         : {
             ...p,
+            autoPass: undefined,
             curseHand: p.curseHand.map(() => ({ id: HIDDEN, curseId: HIDDEN })),
             prophecyId: p.eliminated || gameOver ? p.prophecyId : HIDDEN,
           },
