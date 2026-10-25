@@ -6,7 +6,7 @@ import {
   burdenCount,
   canPlayInWindow,
   sabotageCount,
-  theftBlockedReason,
+  curseNoEffectReason,
   topEntry,
   type CurseCard,
   type CurseTarget,
@@ -59,11 +59,11 @@ export function CursesSheet({ G, turn, onClose, onPlay, onHelp }: { G: PlayerVie
         REACTIVE_CURSES.has(c.curseId) ? (
           <CurseCardView key={c.id} G={G} curseId={c.curseId} note={`${curseWhen(c.curseId)} We'll ask you then.`} />
         ) : (
-          <CurseCardView key={c.id} G={G} curseId={c.curseId} note={theftBlockedReason(G, me.id, c.curseId) ?? undefined}>
+          <CurseCardView key={c.id} G={G} curseId={c.curseId} note={curseNoEffectReason(G, me.id, c.curseId) ?? undefined}>
             <button
               type="button"
               className="primary"
-              disabled={!canPlay || !!theftBlockedReason(G, me.id, c.curseId)}
+              disabled={!canPlay || !!curseNoEffectReason(G, me.id, c.curseId)}
               onClick={() => {
                 if (needsTargets(c.curseId)) onPlay(c);
                 else {
@@ -124,7 +124,9 @@ export function CursePlaySheet({ G, me, card, onPlay, onBack }: { G: PlayerViewS
   const set = (patch: Partial<CurseTarget>) => setTarget({ ...target, ...patch });
 
   const live = G.players.filter((p) => !p.eliminated);
-  const choices = fields.includes('opponent') ? live.filter((p) => p.id !== me.id) : live;
+  // Only offer targets the Curse would have an effect on.
+  const affected = (patch: CurseTarget) => !curseNoEffectReason(G, me.id, card.curseId, { ...target, ...patch });
+  const choices = (fields.includes('opponent') ? live.filter((p) => p.id !== me.id) : live).filter((p) => affected({ playerId: p.id, secondPlayerId: undefined, resource: undefined }));
   const chosen = G.players.find((p) => p.id === target.playerId);
   const sabotage = chosen ? sabotageCount(G, chosen) : 0;
   const discardCounts = Object.fromEntries(
@@ -138,7 +140,7 @@ export function CursePlaySheet({ G, me, card, onPlay, onBack }: { G: PlayerViewS
   if (fields.includes('resource') && !target.resource) ready = false;
   if (fields.includes('exchange') && (!target.give || !target.take)) ready = false;
   if (fields.includes('structures') && (target.structureCardIds?.length ?? 0) !== sabotage) ready = false;
-  const blocked = theftBlockedReason(G, me.id, card.curseId, target.playerId);
+  const blocked = curseNoEffectReason(G, me.id, card.curseId, target);
   if (blocked) ready = false;
 
   return (
@@ -152,13 +154,13 @@ export function CursePlaySheet({ G, me, card, onPlay, onBack }: { G: PlayerViewS
       {fields.includes('secondPlayer') && (
         <>
           <div className="section-label"><span>Player B (is attacked)</span></div>
-          <PlayerPicks G={G} players={live.filter((p) => p.id !== target.playerId)} me={me} value={target.secondPlayerId} onChange={(id) => set({ secondPlayerId: id })} />
+          <PlayerPicks G={G} players={live.filter((p) => p.id !== target.playerId && affected({ secondPlayerId: p.id }))} me={me} value={target.secondPlayerId} onChange={(id) => set({ secondPlayerId: id })} />
         </>
       )}
       {fields.includes('resource') && (
         <>
           <div className="section-label"><span>Resource</span></div>
-          <ResourcePicks value={target.resource} onChange={(r) => set({ resource: r })} options={RESOURCES} />
+          <ResourcePicks value={target.resource} onChange={(r) => set({ resource: r })} options={RESOURCES.filter((r) => affected({ resource: r }))} />
         </>
       )}
       {fields.includes('exchange') && (
@@ -249,7 +251,7 @@ export function ReactionLayer({ G, turn, moves }: { G: PlayerViewState; turn: Tu
   const canRespond = !!me && window.eligible.includes(me.id) && !window.passed.includes(me.id);
   // One button per kind of Curse, even when holding several copies.
   const usable = canRespond
-    ? me!.curseHand.filter((c, i, hand) => canPlayInWindow(G, me!.id, c.curseId) && !theftBlockedReason(G, me!.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i)
+    ? me!.curseHand.filter((c, i, hand) => canPlayInWindow(G, me!.id, c.curseId) && !curseNoEffectReason(G, me!.id, c.curseId) && hand.findIndex((x) => x.curseId === c.curseId) === i)
     : [];
   const card = usable.find((c) => c.id === choosing);
   const paused = !!window.heldBy;

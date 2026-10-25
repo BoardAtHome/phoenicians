@@ -6,6 +6,7 @@ import {
   endActionPhase,
   foresightCards,
   inventoryCounts,
+  curseNoEffectReason,
   inventorySize,
   passWindow,
   playCurse,
@@ -114,6 +115,33 @@ describe('Curse effects', () => {
     expect(state.curseDiscard).toHaveLength(0);
   });
 
+  it('no Curse can be played when it would have no effect', () => {
+    // Fresh game: nobody holds resources or structures yet.
+    const blocked: [string, CurseTarget][] = [
+      ['resource-exchange', { give: 'grain', take: 'grain' }],
+      ['resource-purge', { playerId: 'p1', resource: 'grain' }],
+      ['military-sabotage', { playerId: 'p1', structureCardIds: [] }],
+      ['structural-burden', { playerId: 'p1' }],
+      ['forced-conflict', { playerId: 'p1', secondPlayerId: 'p2' }],
+    ];
+    for (const [id, target] of blocked) {
+      expect(curseNoEffectReason(state, 'p0', id, target), id).not.toBeNull();
+      expect(curseNoEffectReason(state, 'p0', id), id).not.toBeNull();
+      expect(cast(id, target).ok, id).toBe(false);
+    }
+    expect(state.curseDiscard).toHaveLength(0);
+    // Always have an effect.
+    for (const id of ['extra-expedition', 'construction-ban', 'market-manipulation']) expect(curseNoEffectReason(state, 'p0', id)).toBeNull();
+  });
+
+  it('with no target chosen yet, a Curse is playable if any target would work', () => {
+    give(p2, 'grain', 1);
+    expect(curseNoEffectReason(state, 'p0', 'petty-theft')).toBeNull();
+    expect(curseNoEffectReason(state, 'p0', 'petty-theft', { playerId: 'p1' })).toBe('Player 1 has no resources to steal');
+    expect(curseNoEffectReason(state, 'p0', 'resource-purge', { playerId: 'p2', resource: 'warriors' })).not.toBeNull();
+    expect(curseNoEffectReason(state, 'p0', 'resource-purge', { playerId: 'p2', resource: 'grain' })).toBeNull();
+  });
+
   it('a Theft Curse whose victims empty their inventory before it resolves has no effect', () => {
     state = newGame(3, 42, { reactions: true });
     [p0, p1, p2] = state.players as [Player, Player, Player];
@@ -187,11 +215,12 @@ describe('Curse effects', () => {
     expect(p1.counters.structuresDestroyed).toBe(1);
   });
 
-  it('Forced Conflict does nothing without enough Warriors or a target', () => {
+  it('Forced Conflict cannot be played without enough Warriors or a target', () => {
     give(p1, 'warriors', 2);
     grant(state, p2, 'farm');
-    expect(cast('forced-conflict', { playerId: 'p1', secondPlayerId: 'p2' }).ok).toBe(true);
-    expect(state.pendingChoice).toBeNull();
+    const hand = p0.curseHand.length;
+    expect(cast('forced-conflict', { playerId: 'p1', secondPlayerId: 'p2' })).toMatchObject({ ok: false, error: "Player 1 can't afford an attack" });
+    expect(p0.curseHand).toHaveLength(hand + 1);
     expect(cast('forced-conflict', { playerId: 'p1', secondPlayerId: 'p1' }).ok).toBe(false);
   });
 

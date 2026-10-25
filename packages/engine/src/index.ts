@@ -22,7 +22,7 @@ export {
   REACTIVE_CURSES,
   resolveForcedAttack,
   sabotageCount,
-  theftBlockedReason,
+  curseNoEffectReason,
   type CurseTarget,
   type TargetField,
 } from './curses';
