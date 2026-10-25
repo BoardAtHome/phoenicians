@@ -48,7 +48,7 @@ export function App() {
       <header className="topbar">
         <Link to="/" className="brand">Phoenicians</Link>
         <nav>
-          <Link to="/changelog">Changelog</Link>
+          <Link to="/changelog">What's new</Link>
           <Link to="/admin">Admin</Link>
         </nav>
       </header>

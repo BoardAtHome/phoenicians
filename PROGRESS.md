@@ -67,6 +67,19 @@ Prophecy cheat sheet (https://claude.ai/artifact/HNeYf8tJsikXTvrdVX9Gqj).
 - The live published config may still say 7 players max; set "Most players" to 6 in Admin › Config if so.
 - Possible extras: auto-pass toggle for windows, boardgame.io dependency advisories, config/backup export.
 
+## Releasing a build (every PR that changes the app)
+
+Jamil wants every new app build to say what it adds, alongside the config versions.
+
+- Bump `version` in the root `package.json`: minor (0.x.0) for new features, patch (0.x.y) for fixes.
+- Add a `## <version> — <short title>` entry at the top of `CHANGELOG.md`, with an italic
+  `_<date> · PR #n_` line and player-facing bullets (what changed for someone at the table or on the admin page).
+- The in-app What's new page (`/changelog`, App builds tab) reads `CHANGELOG.md` at build time.
+  `packages/client/test/changelog.test.ts` fails if the top entry doesn't match `package.json`.
+- If another PR merged first with the same number, take the next number when rebasing.
+- Config (rules and balance) changes are not builds: they are versioned on the admin page and shown
+  on the Rules and balance tab.
+
 ## Decisions and notes
 
 - Engine is plain TypeScript with no framework imports. Functions mutate the `GameState`

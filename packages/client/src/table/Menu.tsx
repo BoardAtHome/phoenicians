@@ -28,7 +28,7 @@ export function MenuSheet({ G, inviteLink, onLeave, onLog, onGuide, onClose }: {
         <Icon name="cards" /> <span className="grow">Activity log</span> <Icon name="chev" />
       </button>
       <Link to="/changelog" className="row-card">
-        <Icon name="grid" /> <span className="grow">Rule and balance changes</span> <Icon name="chev" />
+        <Icon name="grid" /> <span className="grow">What's new</span> <Icon name="chev" />
       </Link>
       <div className="section-label"><span>This game</span></div>
       <p className="small muted">

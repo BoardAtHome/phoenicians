@@ -1,14 +1,35 @@
 # Changelog
 
-App builds. Rule and balance changes made through the admin page are versioned
-separately and shown on the in-app Changelog page.
+What each app build adds, newest first. The app shows this list on its What's new
+page, next to the rule and balance changes made through the admin page (config
+versions, numbered v1, v2, ...).
 
-## Unreleased
+Every pull request that changes the app adds an entry here and bumps `version` in the
+root `package.json` to match (see "Releasing a build" in `PROGRESS.md`). The newest
+entry is the build that goes live once the PR is merged and deployed.
 
-- The last card drawn from the Expedition deck lies face up next to the deck, big
-  enough for everyone to see, with who drew it. It stays until someone does
-  something new. Calamities show their name, and a stamp when they were ignored
-  (first card) or stopped.
+## 0.10.0 — App builds in What's new
+
+_25 Oct 2026 · PR #11_
+
+- The Changelog page is now "What's new", with two tabs: App builds (what each new
+  version of the app added) and Rules and balance (config versions from the admin
+  page). The build you are playing on is marked.
+- The game menu links to What's new.
+
+## 0.9.1 — Curses that would do nothing
+
+_25 Oct 2026 · PR #9_
+
+- A Curse can no longer be played when it would have no effect (for example Mass
+  Theft when no opponent holds resources), so it stays in your hand. Its Play button
+  is greyed out with the reason, and target pickers only offer targets it would affect.
+- The activity log now says what a theft Curse took and from whom.
+
+## 0.9.0 — Helper text and How to play
+
+_25 Oct 2026 · PR #10_
+
 - "How to play" guide, from the ? button at the top of the table or the game menu,
   with tabs for the basics of a turn, every Prophecy (goal, Banked or Hold, how to get
   there), Market buildings by kind, every Curse (what it does and when it can be
@@ -21,12 +42,19 @@ separately and shown on the in-app Changelog page.
   tiles, structures, Curses and Divine Coins have hover tips.
 - Every number in the helper text comes from the game's live config, so it follows the
   admin's changes. Curse card text the admin rewrote is shown as written.
-- A Curse can no longer be played when it would have no effect (for example Mass
-  Theft when no opponent holds resources), so it stays in your hand. Its Play button
-  is greyed out with the reason, and target pickers only offer targets it would affect.
-- The activity log now says what a theft Curse took and from whom.
+
+## 0.8.0 — Drawn card on the table
+
+_25 Oct 2026 · PR #8_
+
+- The last card drawn from the Expedition deck lies face up next to the deck, big
+  enough for everyone to see, with who drew it. It stays until someone does
+  something new. Calamities show their name, and a stamp when they were ignored
+  (first card) or stopped.
 
 ## 0.7.0 — Table layout
+
+_24 Oct 2026 · PR #7_
 
 - New game screen laid out like a real table: rivals sit around the edge in turn
   order (the next player on your left), the Expedition deck is in the middle, and
@@ -48,6 +76,8 @@ separately and shown on the in-app Changelog page.
 
 ## 0.6.0 — Playtest tools
 
+_24 Oct 2026 · PR #6_
+
 - Admin page in three tabs: Config, Versions, and Matches and stats.
 - Form editor for every config number (decks, costs, buildings, Prophecies,
   Curses and their numbers, reaction timer), with live validation and a preview
@@ -65,6 +95,8 @@ separately and shown on the in-app Changelog page.
 
 ## 0.5.0 — Reactions
 
+_24 Oct 2026 · PR #5_
+
 - After each draw, attack, ritual, Curse, build, Divine Coin or guess, players
   who could answer get a short window (5 seconds, configurable) to play a Curse.
   Everyone else sees a countdown. Pass ends your part early; choosing targets
@@ -78,6 +110,8 @@ separately and shown on the in-app Changelog page.
 
 ## 0.4.0 — Curses on your own turn
 
+_24 Oct 2026 · PR #4_
+
 - Play 12 Curses during your action phase: Resource Exchange, Petty Theft,
   Divine Foresight, Mass Theft, Extra Expedition, Construction Ban,
   Market Manipulation, Forced Conflict, Resource Purge, Military Sabotage,
@@ -86,6 +120,8 @@ separately and shown on the in-app Changelog page.
 - The 7 reactive Curses and Revival arrive with reaction windows.
 
 ## 0.3.0 — Online play
+
+_24 Oct 2026 · PR #3_
 
 - Play online: create a game, share the link, each player claims their seat.
 - Board with shop, expeditions, Calamity discard choices, attacks, rituals,
@@ -97,9 +133,13 @@ separately and shown on the in-app Changelog page.
 
 ## 0.2.0 — Prophecies and victory
 
+_24 Oct 2026 · PR #2_
+
 - Automatic victory at the start of your own turn, attacks, rituals,
   Divine Coins, elimination, last player standing.
 
 ## 0.1.0 — Engine core
+
+_24 Oct 2026 · PR #1_
 
 - Config, setup, turn flow, expeditions, all Calamities, building.
