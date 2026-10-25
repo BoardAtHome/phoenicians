@@ -1,8 +1,9 @@
 import { RESOURCES, canAfford, inventoryCounts, type Player, type ResourceMap } from '@phoenicians/engine';
 import type { PlayerViewState } from '@phoenicians/game';
 import { CATEGORY_LABEL, RESOURCE_LABEL } from '../format';
+import { STRUCTURES_HELP, structureHelp } from '../help';
 import { Icon } from './Icon';
-import { Sheet } from './Sheet';
+import { HelpLink, Sheet } from './Sheet';
 import type { Turn } from './useTurn';
 
 /** Cost chips in resource colors; a ring marks each resource you are short of. */
@@ -28,10 +29,11 @@ export function shortfall(cost: ResourceMap, player: Player): string {
 }
 
 /** The face-up buildings, with what you're missing for each. */
-export function MarketSheet({ G, turn, onClose }: { G: PlayerViewState; turn: Turn; onClose: () => void }) {
+export function MarketSheet({ G, turn, onClose, onHelp }: { G: PlayerViewState; turn: Turn; onClose: () => void; onHelp: () => void }) {
   const { me, canAct, send } = turn;
   return (
     <Sheet title="Market" subtitle={`${G.shop.filter(Boolean).length} face-up · refills from the building deck (${G.counts.buildingDeck} left)`} onClose={onClose}>
+      <p className="small muted">{STRUCTURES_HELP}</p>
       {me?.constructionBanned && <p className="hint">A Construction Ban stops you building this turn.</p>}
       {G.shop.map((card, slot) => {
         if (!card) return <div key={slot} className="row-card muted">Empty slot</div>;
@@ -45,6 +47,7 @@ export function MarketSheet({ G, turn, onClose }: { G: PlayerViewState; turn: Tu
               <div>
                 <b>{s.name}</b> <span className="muted small">{CATEGORY_LABEL[s.category]}</span>
               </div>
+              <span className="small muted">{structureHelp(G.config, s)}</span>
               <CostChips cost={s.cost} player={me} />
               {need && <span className="need">{need}</span>}
             </div>
@@ -63,6 +66,7 @@ export function MarketSheet({ G, turn, onClose }: { G: PlayerViewState; turn: Tu
         );
       })}
       {!canAct && <p className="muted small">You can build during your actions.</p>}
+      <HelpLink onOpen={onHelp} label="All buildings and what they count toward" />
     </Sheet>
   );
 }

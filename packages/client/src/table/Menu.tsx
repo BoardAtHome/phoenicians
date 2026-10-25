@@ -8,7 +8,7 @@ import { Sheet } from './Sheet';
 import { lastIndex } from './useTurn';
 
 /** Invite link, leave seat, the activity log, and what version of the rules this game uses. */
-export function MenuSheet({ G, inviteLink, onLeave, onLog, onClose }: { G: PlayerViewState; inviteLink?: string; onLeave?: () => void; onLog: () => void; onClose: () => void }) {
+export function MenuSheet({ G, inviteLink, onLeave, onLog, onGuide, onClose }: { G: PlayerViewState; inviteLink?: string; onLeave?: () => void; onLog: () => void; onGuide: () => void; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   return (
     <Sheet title="Game menu" onClose={onClose}>
@@ -21,6 +21,9 @@ export function MenuSheet({ G, inviteLink, onLeave, onLog, onClose }: { G: Playe
           </div>
         </>
       )}
+      <button type="button" className="row-card" onClick={onGuide}>
+        <Icon name="help" /> <span className="grow">How to play</span> <Icon name="chev" />
+      </button>
       <button type="button" className="row-card" onClick={onLog}>
         <Icon name="cards" /> <span className="grow">Activity log</span> <Icon name="chev" />
       </button>

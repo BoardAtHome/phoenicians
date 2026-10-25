@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { prophecyProgress, type Player } from '@phoenicians/engine';
 import { HIDDEN, type PlayerViewState } from '@phoenicians/game';
+import { evaluationHelp, prophecyGoal, prophecyHow } from '../help';
 import { Icon } from './Icon';
 import { CategoryCounts } from './Seat';
 import type { Turn } from './useTurn';
@@ -19,21 +20,22 @@ function ProphecyBar({ G, me }: { G: PlayerViewState; me: Player }) {
   const progress = prophecyProgress(G, me, prophecy);
   const met = !me.eliminated && progress >= prophecy.threshold;
   return (
-    <button type="button" className={`prophecy-bar ${met ? 'met' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open}>
+    <button type="button" className={`prophecy-bar ${met ? 'met' : ''}`} onClick={() => setOpen(!open)} aria-expanded={open} title={open ? evaluationHelp(prophecy) : undefined}>
       <Icon name={open ? 'eye' : 'lock'} size={18} />
       <span className="prophecy-text">
         <span className="label">Secret Prophecy</span>
         {open ? (
           <>
-            <b>{prophecy.name}</b>
+            <b>{prophecy.name}: {prophecyGoal(prophecy)}</b>
             <span className="small">
               {Math.min(progress, prophecy.threshold)} / {prophecy.threshold}
               {' · '}
               {prophecy.evaluation === 'cumulative' ? 'stays achieved once reached' : 'must still hold at your turn start'}
             </span>
+            <span className="small muted">{prophecyHow(G.config, prophecy)}</span>
           </>
         ) : (
-          <b>Tap to peek</b>
+          <b>Tap to peek · your secret goal to win</b>
         )}
       </span>
       {open && (
@@ -102,15 +104,15 @@ export function Dock({
     <div className="dock">
       {top}
       <ProphecyBar G={G} me={me} />
-      <ResourceTiles player={me} />
+      <ResourceTiles player={me} config={G.config} />
       <div className="strip">
         <button type="button" className="strip-btn grow" onClick={onVillage} aria-label="Your village">
           <CategoryCounts G={G} player={me} />
         </button>
-        <button type="button" className="strip-btn" onClick={onCurses} aria-label="Your Curses">
+        <button type="button" className="strip-btn" onClick={onCurses} aria-label="Your Curses" title="Your Curses: secret cards with special powers">
           <Icon name="curse" /> {me.curseHand.length}
         </button>
-        <span className="strip-btn coins" title="Divine Coins">
+        <span className="strip-btn coins" title={`Divine Coins: spend ${G.config.costs.guessProphecy} to guess a rival's Prophecy`}>
           <Icon name="coin" /> {me.divineCoins}
         </span>
       </div>
