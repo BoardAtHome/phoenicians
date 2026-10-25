@@ -8,6 +8,18 @@ Every pull request that changes the app adds an entry here and bumps `version` i
 root `package.json` to match (see "Releasing a build" in `PROGRESS.md`). The newest
 entry is the build that goes live once the PR is merged and deployed.
 
+## 0.10.1 — Reaction timer no longer gets stuck
+
+_25 Oct 2026 · PR #12_
+
+- A reaction window now always closes when its countdown ends. The server closes it,
+  so the game no longer waits at 0s for a player who left, lost signal or put their
+  phone away. Windows left open when the server restarted or slept close as soon as
+  it is back.
+- If your device stops getting answers from the server (a dropped connection, or it
+  fell out of step), the game reconnects by itself after a few seconds, so buttons like
+  Draw work again instead of doing nothing.
+
 ## 0.10.0 — App builds in What's new
 
 _25 Oct 2026 · PR #11_

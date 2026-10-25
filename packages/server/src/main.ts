@@ -19,3 +19,5 @@ const db = pool ? new PostgresMatchStore(pool) : undefined;
 const store = await ConfigStore.open(persistence, build);
 const server = createApp({ store, adminPassword, build, db, clientDir: path.join(root, 'packages/client/dist') });
 await server.run(port, () => console.log(`Phoenicians ${build} listening on :${port}`));
+// Reaction windows left open when the server stopped or slept close as soon as it is back.
+await server.windowTimers.trackAll();

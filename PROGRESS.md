@@ -61,6 +61,22 @@ Prophecy cheat sheet (https://claude.ai/artifact/HNeYf8tJsikXTvrdVX9Gqj).
 - [x] Browser-checked on phone and desktop.
 - [ ] PR review and merge
 
+## Reaction timer stuck at 0s (0.10.1, branch `claude/project-thread-6pr7xg`)
+
+Playtest: after a draw the window sat at 0s ("Waiting on 1 player who may respond") and nobody could
+draw or keep; later, pressing Draw did nothing. Windows only closed when a client sent `closeWindow`
+after its own countdown, and boardgame.io silently drops moves from a client whose state is behind
+the server (or whose socket is dead), so the match waited until someone reconnected.
+
+- [x] `server/src/windowTimers.ts`: the server arms a timer at each window's deadline (from
+      `HistoryStore.onSave`) and sends `closeWindow` itself through the match's move queue, then
+      broadcasts. `trackAll()` on startup re-arms windows saved before a restart or sleep.
+      Clients still ask as a fallback. Tests: `server/test/reactionTimer.test.ts`.
+- [x] Client: if a move sent with `send` gets no state back in 6s (`STALE_AFTER_MS` in `useTurn.ts`),
+      `MatchPage` remounts the game client, which opens a new socket and syncs. Browser-checked by
+      dropping the socket's outgoing frames: reconnected after 6s and the next Draw went through.
+- [ ] PR review and merge
+
 ## After milestone 7
 
 - Deploy on Render (DEPLOY.md). The free database is deleted after 30 days, so upgrade it (about $6/month).
