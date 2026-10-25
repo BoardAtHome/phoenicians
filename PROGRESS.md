@@ -136,5 +136,10 @@ Jamil wants every new app build to say what it adds, alongside the config versio
 - Attacks and rituals are paid when declared; a canceled attack keeps the cost spent.
 - Stats in progress hide Prophecies and Curse details behind "Show anyway", since the admin may be playing.
 - Undo history lives in server memory (last 30 states per match) and resets on restart or deploy.
+- boardgame.io's own undo is off (`disableUndo`). It copied G into `_undo` on every move and only
+  clears it at a boardgame.io turn end, which never comes here, so the saved state grew by about
+  45 KB a move and every move, save and lobby poll got slower until the game fell apart.
+  `npx tsx bench/load.ts` in `packages/server` plays a 6-player match and prints the time and bytes
+  per move (set `DATABASE_URL` to run it against Postgres).
 - "Avg own turn of first purchase" approximates the build plan's "turns to afford each category".
 - Ending a match sets `ctx.gameover = { endedByAdmin: true }` with no winner.

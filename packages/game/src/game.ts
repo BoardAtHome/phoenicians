@@ -109,6 +109,10 @@ export function createPhoenicians(options: PhoeniciansOptions = {}): Game<GameSt
     },
 
     turn: { activePlayers: ActivePlayers.ALL },
+    // boardgame.io's undo keeps a full copy of G for every move made in a turn, and its turn never
+    // ends here (the engine runs its own turns), so the saved state grew by a whole G on every move
+    // and every move got slower. The admin's undo uses the server's own history instead.
+    disableUndo: true,
 
     // Moves run on the server only (`client: false`): clients see a filtered view
     // without deck contents or other players' secrets, so they cannot predict results.

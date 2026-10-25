@@ -85,7 +85,11 @@ export class HistoryStore extends Async {
   }
 
   async setState(matchID: string, state: State, deltalog?: LogEntry[]) {
+    // Matches saved before undo was turned off carry a copy of G per move in `_undo`: drop it.
+    state = { ...state, _undo: [], _redo: [] };
     const list = this.history.get(matchID) ?? [];
+    // A refused move saves the same state again; keep one copy so it does not push real steps out.
+    if (list.at(-1)?._stateID === state._stateID) list.pop();
     list.push(structuredClone(state));
     if (list.length > this.depth) list.shift();
     this.history.set(matchID, list);
